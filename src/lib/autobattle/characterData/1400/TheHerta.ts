@@ -6,5 +6,6 @@ import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 export const TheHertaData: CharacterData = {
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'allEnemies',
+    [AbilityKind.ULT]: 'allEnemies',
   },
 }

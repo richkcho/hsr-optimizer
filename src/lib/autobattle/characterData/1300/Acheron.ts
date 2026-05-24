@@ -25,4 +25,7 @@ export const AcheronData: CharacterData = {
     threshold: 9,
     consumeOnUlt: 'all',
   },
+  abilityTargetHint: {
+    [AbilityKind.ULT]: 'allEnemies',  // Rainblade Resolution — massive AoE
+  },
 }

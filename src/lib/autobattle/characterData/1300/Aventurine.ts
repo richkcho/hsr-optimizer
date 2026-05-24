@@ -20,5 +20,6 @@ export const AventurineData: CharacterData = {
   },
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'allEnemies',  // AoE Imaginary attack (Imaginary Numinosity)
+    [AbilityKind.ULT]: 'allEnemies',
   },
 }

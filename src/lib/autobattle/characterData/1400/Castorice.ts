@@ -13,5 +13,6 @@ export const CastoriceData: CharacterData = {
   },
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'allEnemies',  // Cry of the Forsaken — AoE HP-cost attack
+    [AbilityKind.ULT]: 'allEnemies',    // Lifeline — AoE
   },
 }

@@ -51,5 +51,14 @@ export function resolveCharacterData(id: CharacterId): CharacterData {
     ...defaultCharacterData,
     ...override,
     energyOnAction: { ...defaultCharacterData.energyOnAction, ...override.energyOnAction },
+    // Deep-merge so a default hint (if ever added) survives an override that only sets one
+    // kind. Conditional: keep `undefined` for chars with no hint to preserve the registry's
+    // existing identity for those — test assertions rely on it.
+    ...(override.abilityTargetHint && {
+      abilityTargetHint: {
+        ...defaultCharacterData.abilityTargetHint,
+        ...override.abilityTargetHint,
+      },
+    }),
   }
 }

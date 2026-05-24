@@ -117,14 +117,18 @@ export type TurnLogKind = AbilityKind | 'TICK' | 'DOT_TICK' | 'BUFF_EXPIRE' | 'E
 // Where the ability aims. Damage in v1 is scalar (per-actor x per-kind), so target is mainly
 // intent/documentation + forward-compat for per-enemy state. Side-effect routing (energy,
 // advance, buffs to teammates) still goes through GrantTarget on CharacterData/BuffGrant.
+//
+// Convention for hints: AbilityTarget describes where the *damage* lands. Side-effects like
+// allied heals/shields attached to an enemy-aimed ability still get expressed via GrantTarget
+// on grantsBuffsOnAction etc. — they don't change the AbilityTarget.
 export type AbilityTarget =
   | 'mainEnemy'
   | 'allEnemies'
   | 'self'
   | 'singleAlly'
   | 'allAllies'
-  | { slot: SlotIndex }
-  | { enemyIndex: number }
+  | { kind: 'slot'; slot: SlotIndex }
+  | { kind: 'enemy'; enemyIndex: number }
 
 export interface TurnLogEntry {
   elapsedAv: number      // cumulative

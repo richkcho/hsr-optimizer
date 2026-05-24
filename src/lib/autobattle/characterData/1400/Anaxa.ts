@@ -5,5 +5,6 @@ import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 export const AnaxaData: CharacterData = {
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'allEnemies',
+    [AbilityKind.ULT]: 'allEnemies',
   },
 }

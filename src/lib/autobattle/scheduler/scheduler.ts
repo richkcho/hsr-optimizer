@@ -277,8 +277,11 @@ export function resolveAbilityTarget(member: TeamMember, chosen: ChosenAbility):
   return defaultTargetForKind(chosen.kind)
 }
 
-export function defaultTargetForKind(kind: AbilityKind): AbilityTarget {
-  if (kind === AbilityKind.ULT) return 'allEnemies'
+// Conservative default: assume single-target enemy. AoE abilities (most ults, AoE skills)
+// must declare an explicit hint in CharacterData.abilityTargetHint — that way a missing hint
+// becomes a visible mislabel in the log rather than silently misclassifying support ults
+// (e.g. Robin/Sunday/Sparkle ult) as allEnemies.
+export function defaultTargetForKind(_kind: AbilityKind): AbilityTarget {
   return 'mainEnemy'
 }
 
