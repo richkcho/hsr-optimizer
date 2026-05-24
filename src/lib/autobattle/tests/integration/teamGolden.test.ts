@@ -187,18 +187,21 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden frozen on 2026-05-23 (Phase D — Feixiao FUA + Robin energy grant active). Includes
-// Feixiao's every-2 FUA trigger feeding ~4M damage, and Robin's ult granting +50 energy to
-// the main DPS slot (boosting Feixiao's ult cadence). To regenerate after pipeline changes,
-// flip the `regen` test below to non-skip and copy its console output.
+// Golden frozen on 2026-05-23 (Phase E — adds Robin/Bronya/Acheron/Feixiao/Huohuo tendency
+// overrides plus full archetype set). Sparkle (Harmony, no override) and Aventurine
+// (Preservation, no override) now use fieldBuffer / healer archetypes which prefer basic over
+// skill, freeing SP for Feixiao to skill every turn. Net effect: ~14% higher team DPS than
+// Phase D, dominated by Feixiao's ULT (8.3M) + FUA (4.0M).
+// To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy its
+// console output back into this block.
 const GOLDEN = {
-  grandTotal: 15067172,
-  feixiaoTotal: 14014074,
+  grandTotal: 17151247,
+  feixiaoTotal: 15372633,
   feixiaoFua: 3978525,
-  feixiaoUlt: 7635857,
-  robinTotal: 292705,
-  sparkleTotal: 207415,
-  aventurineTotal: 552978,
+  feixiaoUlt: 8272178,
+  robinTotal: 615689,
+  sparkleTotal: 395385,
+  aventurineTotal: 767540,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {
@@ -237,7 +240,6 @@ describe('autobattle team golden', () => {
     const feixiao = result.ledger.byActorBySource['0:primary']!
     approxEq(feixiao.FUA ?? 0, GOLDEN.feixiaoFua)
     approxEq(feixiao.ULT ?? 0, GOLDEN.feixiaoUlt)
-    expect(feixiao.BASIC).toBeGreaterThan(0)
-    expect(feixiao.SKILL).toBeGreaterThan(0)
+    expect(feixiao.SKILL ?? 0).toBeGreaterThan(0)
   })
 })
