@@ -158,3 +158,6 @@ goldenSimBuildResults.json
 
 # PR review plans
 /plans/
+
+# Local scratch
+.tmp/

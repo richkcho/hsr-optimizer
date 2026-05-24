@@ -2,9 +2,10 @@ import { fieldBufferTendency } from 'lib/autobattle/tendencies/archetypes/fieldB
 import type { ChosenAbility, Tendency, TendencyCtx } from 'lib/autobattle/types'
 import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 
-// Sunday's skill places his summon's bird mark on a single ally (granting CD/energy on their
-// next attack). He's SP-neutral but the impact is on the ally turn, not Sunday's. We treat
-// him as fieldBuffer-shaped: basic to feed energy, ult to advance + grant energy to the DPS.
+// Sunday's skill advances a single ally 100% AV and applies a CritDMG/DMG% buff; his ult
+// grants energy to a single ally (in-game also applies the "Beatified" buff, modeled via
+// standard conditionals). Both grants live in characterData; the tendency just decides
+// which ability to use this turn — skill when SP allows, basic otherwise.
 export const SundayTendency: Tendency = {
   ...fieldBufferTendency,
   decideTurn(ctx: TendencyCtx): ChosenAbility {

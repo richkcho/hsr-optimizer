@@ -43,18 +43,22 @@ describe('characterData registry', () => {
     expect(data.memo?.spdSource).toBe('entityDefinition')
   })
 
-  test('Robin: grants +50 energy to single ally on ult', () => {
+  test('Robin: ult advances every other ally 100% AV', () => {
     const data = resolveCharacterData('1309' as CharacterId)
-    const ultGrant = data.grantsEnergyOnAction?.[AbilityKind.ULT]
-    expect(ultGrant?.target).toBe('singleAlly')
-    expect(ultGrant?.amount).toBe(50)
+    const advanceGrant = data.grantsAdvanceOnAction?.[AbilityKind.ULT]
+    expect(advanceGrant?.target).toBe('allAllies')
+    expect(advanceGrant?.avPercent).toBe(100)
+    // No energy grant — Robin's ult doesn't feed teammate energy.
+    expect(data.grantsEnergyOnAction?.[AbilityKind.ULT]).toBeUndefined()
   })
 
-  test('Sunday: grants 100% advance + energy to single ally on ult', () => {
+  test('Sunday: skill advances single ally 100% AV; ult grants energy', () => {
     const data = resolveCharacterData('1313' as CharacterId)
-    const advanceGrant = data.grantsAdvanceOnAction?.[AbilityKind.ULT]
+    const advanceGrant = data.grantsAdvanceOnAction?.[AbilityKind.SKILL]
     expect(advanceGrant?.target).toBe('singleAlly')
     expect(advanceGrant?.avPercent).toBe(100)
+    // Advance is on skill, not ult.
+    expect(data.grantsAdvanceOnAction?.[AbilityKind.ULT]).toBeUndefined()
     const energyGrant = data.grantsEnergyOnAction?.[AbilityKind.ULT]
     expect(energyGrant?.target).toBe('singleAlly')
     expect(energyGrant?.amount).toBe(40)

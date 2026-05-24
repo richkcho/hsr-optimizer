@@ -187,20 +187,20 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden frozen on 2026-05-23 (Phase G-1 — adds Sparkle/Aventurine/Topaz/Yunli/Sunday
-// character data + tendencies). Sparkle now uses spPositiveBuffer (skill-camping with SP
-// headroom), Aventurine has v1Approx energy regen + every-7 FUA trigger, both adding modest
-// damage. Feixiao stays the dominant carry (~88% of team total).
+// Golden refrozen on 2026-05-23 after correcting Robin's ult mechanic: ult now advances
+// every other ally 100% AV (was: +50 energy to mainDpsSlot). Feixiao's FUA cadence shifts up
+// (+2.4%) since she gets extra turns, but her ult cadence drops (-3.7%) without the energy
+// feed; Aventurine gains a turn from each Robin ult (+6%). Team total moves ~+0.84%.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy its
 // console output back into this block.
 const GOLDEN = {
-  grandTotal: 18049001,
-  feixiaoTotal: 15940834,
-  feixiaoFua: 4042182,
-  feixiaoUlt: 8590339,
+  grandTotal: 18201433,
+  feixiaoTotal: 16044329,
+  feixiaoFua: 4137666,
+  feixiaoUlt: 8272178,
   robinTotal: 615689,
-  sparkleTotal: 356495,
-  aventurineTotal: 1135983,
+  sparkleTotal: 337050,
+  aventurineTotal: 1204365,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {
