@@ -2,4 +2,5 @@ export enum WorkerType {
   OPTIMIZER,
   EST_TBP,
   COMPUTE_OPTIMAL_SIMULATION,
+  AUTOBATTLE,
 }

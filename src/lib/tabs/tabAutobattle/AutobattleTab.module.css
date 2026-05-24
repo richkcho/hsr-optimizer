@@ -1,0 +1,13 @@
+.root {
+  align-items: stretch;
+}
+
+.settingsPanel {
+  flex: 0 0 340px;
+  min-width: 320px;
+}
+
+.resultsPanel {
+  flex: 1 1 auto;
+  min-width: 0;
+}

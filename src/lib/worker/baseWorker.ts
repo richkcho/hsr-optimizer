@@ -1,3 +1,4 @@
+import type { AutobattleWorkerInput } from 'lib/autobattle/worker/autobattleWorkerRunner'
 import type { ComputeOptimalSimulationWorkerInput } from 'lib/worker/computeOptimalSimulationWorkerRunner'
 import type { EstTbpWorkerInput } from 'lib/worker/estTbpWorkerRunner'
 import type { OptimizerWorkerInput } from 'lib/worker/optimizerWorker'
@@ -34,6 +35,11 @@ async function handleMessage(e: MessageEvent<BaseWorkerInput>) {
     case WorkerType.COMPUTE_OPTIMAL_SIMULATION: {
       const { computeOptimalSimulationWorker } = await import('lib/worker/computeOptimalSimulationWorker')
       computeOptimalSimulationWorker(e as MessageEvent<ComputeOptimalSimulationWorkerInput>)
+      break
+    }
+    case WorkerType.AUTOBATTLE: {
+      const { autobattleWorker } = await import('lib/autobattle/worker/autobattleWorker')
+      autobattleWorker(e as MessageEvent<AutobattleWorkerInput>)
       break
     }
     default:

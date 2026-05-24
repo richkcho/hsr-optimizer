@@ -6,6 +6,7 @@ import {
 import { PAGE_FEATURE_KEYS } from 'lib/constants/newFeatures'
 import { markFeatureSeen } from 'lib/stores/newFeatureStore'
 import { useGlobalStore } from 'lib/stores/app/appStore'
+import { AutobattleTab } from 'lib/tabs/tabAutobattle/AutobattleTab'
 import { BenchmarksTab } from 'lib/tabs/tabBenchmarks/BenchmarksTab'
 import { CalculatorsTab } from 'lib/tabs/tabCalculators/CalculatorsTab'
 import { ChangelogTab } from 'lib/tabs/tabChangelog/ChangelogTab'
@@ -51,6 +52,7 @@ const TAB_COMPONENTS: [AppPages, React.ComponentType][] = [
   [AppPages.WARP, WarpCalculatorTab],
   [AppPages.BENCHMARKS, BenchmarksTab],
   [AppPages.CALCULATORS, CalculatorsTab],
+  [AppPages.AUTOBATTLE, AutobattleTab],
   [AppPages.CHANGELOG, ChangelogTab],
   [AppPages.WEBGPU_TEST, WebgpuTab],
   [AppPages.METADATA_TEST, MetadataTab],
@@ -65,6 +67,7 @@ const MOUNT_PRIORITY: AppPages[] = [
   AppPages.WARP,
   AppPages.BENCHMARKS,
   AppPages.CALCULATORS,
+  AppPages.AUTOBATTLE,
   AppPages.CHANGELOG,
   AppPages.CHARACTERS,
   AppPages.RELICS,

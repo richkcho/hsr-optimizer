@@ -21,6 +21,7 @@ export enum AppPages {
   WARP = 'WARP',
   BENCHMARKS = 'BENCHMARKS',
   CALCULATORS = 'CALCULATORS',
+  AUTOBATTLE = 'AUTOBATTLE',
 
   WEBGPU_TEST = 'WEBGPU_TEST',
   METADATA_TEST = 'METADATA_TEST',
@@ -28,7 +29,7 @@ export enum AppPages {
 
 type Route = `${typeof BASE_PATH}${RouteSuffix}`
 
-type RouteSuffix = '' | '#main' | '#showcase' | '#changelog' | '#warp' | '#benchmarks' | '#aha' | '#ehr' | '#webgpu' | '#metadata'
+type RouteSuffix = '' | '#main' | '#showcase' | '#changelog' | '#warp' | '#benchmarks' | '#aha' | '#ehr' | '#autobattle' | '#webgpu' | '#metadata'
 
 export const PageToRoute = {
   [AppPages.HOME]: BASE_PATH,
@@ -43,6 +44,7 @@ export const PageToRoute = {
   [AppPages.WARP]: `${BASE_PATH}#warp`,
   [AppPages.BENCHMARKS]: `${BASE_PATH}#benchmarks`,
   [AppPages.CALCULATORS]: `${BASE_PATH}#aha`,
+  [AppPages.AUTOBATTLE]: `${BASE_PATH}#autobattle`,
 
   [AppPages.WEBGPU_TEST]: `${BASE_PATH}#webgpu`,
   [AppPages.METADATA_TEST]: `${BASE_PATH}#metadata`,
