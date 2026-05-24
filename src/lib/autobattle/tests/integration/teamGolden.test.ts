@@ -187,12 +187,15 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden frozen from the first deterministic run on 2026-05-23 (commit after Phase C).
-// If the damage pipeline or autobattle scheduler behavior changes, regenerate these by
-// console.logging result.ledger and updating the expected values.
+// Golden frozen on 2026-05-23 (Phase D — Feixiao FUA + Robin energy grant active). Includes
+// Feixiao's every-2 FUA trigger feeding ~4M damage, and Robin's ult granting +50 energy to
+// the main DPS slot (boosting Feixiao's ult cadence). To regenerate after pipeline changes,
+// flip the `regen` test below to non-skip and copy its console output.
 const GOLDEN = {
-  grandTotal: 8225200,
-  feixiaoTotal: 7172102,
+  grandTotal: 15067172,
+  feixiaoTotal: 14014074,
+  feixiaoFua: 3978525,
+  feixiaoUlt: 7635857,
   robinTotal: 292705,
   sparkleTotal: 207415,
   aventurineTotal: 552978,
@@ -205,6 +208,17 @@ function approxEq(actual: number, expected: number, tolerance = 0.001): void {
 }
 
 describe('autobattle team golden', () => {
+  test.skip('regen golden values (flip to non-skip to capture new numbers)', () => {
+    const result = runAutobattle(makeInput(), { buildResolvers: true })
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({
+      grandTotal: result.ledger.grandTotal,
+      totals: result.ledger.totalsByActor,
+      bySource: result.ledger.byActorBySource,
+    }, null, 2))
+    expect(result.ledger.grandTotal).toBeGreaterThan(0)
+  })
+
   test('Feixiao/Robin/Sparkle/Aventurine team @ 6000 AV matches frozen golden', () => {
     const result = runAutobattle(makeInput(), { buildResolvers: true })
 
@@ -219,10 +233,11 @@ describe('autobattle team golden', () => {
       (result.ledger.totalsByActor['1:primary']! + result.ledger.totalsByActor['2:primary']!) * 5,
     )
 
-    // Per-source breakdown reflects rotation: Feixiao gets damage from BASIC/SKILL/ULT.
+    // Feixiao's FUA should account for a chunk of her damage thanks to her every-2 trigger.
     const feixiao = result.ledger.byActorBySource['0:primary']!
+    approxEq(feixiao.FUA ?? 0, GOLDEN.feixiaoFua)
+    approxEq(feixiao.ULT ?? 0, GOLDEN.feixiaoUlt)
     expect(feixiao.BASIC).toBeGreaterThan(0)
     expect(feixiao.SKILL).toBeGreaterThan(0)
-    expect(feixiao.ULT).toBeGreaterThan(0)
   })
 })
