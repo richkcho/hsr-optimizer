@@ -79,6 +79,18 @@ describe('characterData registry', () => {
     expect(data.fuaTriggers?.[0].on).toBe('teammateAttack')
   })
 
+  test('Hyacine: Ica memo with fromOwnerSpd inheritance', () => {
+    const data = resolveCharacterData('1409' as CharacterId)
+    expect(data.memo?.entityName).toBe('Ica')
+    expect(data.memo?.spdSource).toEqual({ fromOwnerSpd: 1.0 })
+  })
+
+  test('Castorice: Netherwing memo with entityDefinition SPD source', () => {
+    const data = resolveCharacterData('1407' as CharacterId)
+    expect(data.memo?.entityName).toBe('Netherwing')
+    expect(data.memo?.spdSource).toBe('entityDefinition')
+  })
+
   test('overrides merge with defaults (energyOnAction)', () => {
     // Acheron's stacks ult doesn't touch energy gen — basic/skill energy still inherited.
     const data = resolveCharacterData('1308' as CharacterId)

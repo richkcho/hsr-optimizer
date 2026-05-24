@@ -11,6 +11,9 @@ import { RobinTendency } from 'lib/autobattle/tendencies/1300/Robin'
 import { SparkleTendency } from 'lib/autobattle/tendencies/1300/Sparkle'
 import { SundayTendency } from 'lib/autobattle/tendencies/1300/Sunday'
 import { AnaxaTendency } from 'lib/autobattle/tendencies/1400/Anaxa'
+import { CastoriceTendency } from 'lib/autobattle/tendencies/1400/Castorice'
+import { HyacineTendency } from 'lib/autobattle/tendencies/1400/Hyacine'
+import { MydeiTendency } from 'lib/autobattle/tendencies/1400/Mydei'
 import { PhainonTendency } from 'lib/autobattle/tendencies/1400/Phainon'
 import { TheHertaTendency } from 'lib/autobattle/tendencies/1400/TheHerta'
 import { archetypeRegistry } from 'lib/autobattle/tendencies/archetypes'
@@ -34,8 +37,11 @@ const overrides: Partial<Record<CharacterId, Tendency>> = {
   '1309': RobinTendency,
   '1313': SundayTendency,
   '1401': TheHertaTendency,
+  '1404': MydeiTendency,
   '1405': AnaxaTendency,
+  '1407': CastoriceTendency,
   '1408': PhainonTendency,
+  '1409': HyacineTendency,
 } as Partial<Record<CharacterId, Tendency>>
 
 export function registerTendency(id: CharacterId, tendency: Tendency): void {
