@@ -187,21 +187,20 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden frozen on 2026-05-23 (Phase E — adds Robin/Bronya/Acheron/Feixiao/Huohuo tendency
-// overrides plus full archetype set). Sparkle (Harmony, no override) and Aventurine
-// (Preservation, no override) now use fieldBuffer / healer archetypes which prefer basic over
-// skill, freeing SP for Feixiao to skill every turn. Net effect: ~14% higher team DPS than
-// Phase D, dominated by Feixiao's ULT (8.3M) + FUA (4.0M).
+// Golden frozen on 2026-05-23 (Phase G-1 — adds Sparkle/Aventurine/Topaz/Yunli/Sunday
+// character data + tendencies). Sparkle now uses spPositiveBuffer (skill-camping with SP
+// headroom), Aventurine has v1Approx energy regen + every-7 FUA trigger, both adding modest
+// damage. Feixiao stays the dominant carry (~88% of team total).
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy its
 // console output back into this block.
 const GOLDEN = {
-  grandTotal: 17151247,
-  feixiaoTotal: 15372633,
-  feixiaoFua: 3978525,
-  feixiaoUlt: 8272178,
+  grandTotal: 18049001,
+  feixiaoTotal: 15940834,
+  feixiaoFua: 4042182,
+  feixiaoUlt: 8590339,
   robinTotal: 615689,
-  sparkleTotal: 395385,
-  aventurineTotal: 767540,
+  sparkleTotal: 356495,
+  aventurineTotal: 1135983,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

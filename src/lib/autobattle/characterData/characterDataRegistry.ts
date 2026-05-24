@@ -1,7 +1,10 @@
 import { TopazData } from 'lib/autobattle/characterData/1100/Topaz'
 import { FeixiaoData } from 'lib/autobattle/characterData/1200/Feixiao'
+import { YunliData } from 'lib/autobattle/characterData/1200/Yunli'
 import { AcheronData } from 'lib/autobattle/characterData/1300/Acheron'
+import { AventurineData } from 'lib/autobattle/characterData/1300/Aventurine'
 import { RobinData } from 'lib/autobattle/characterData/1300/Robin'
+import { SparkleData } from 'lib/autobattle/characterData/1300/Sparkle'
 import { SundayData } from 'lib/autobattle/characterData/1300/Sunday'
 import { defaultCharacterData } from 'lib/autobattle/characterData/defaults'
 import type { CharacterData } from 'lib/autobattle/types'
@@ -13,6 +16,9 @@ import type { CharacterId } from 'types/character'
 const overrides: Partial<Record<CharacterId, Partial<CharacterData>>> = {
   '1112': TopazData,
   '1220': FeixiaoData,
+  '1221': YunliData,
+  '1304': AventurineData,
+  '1306': SparkleData,
   '1308': AcheronData,
   '1309': RobinData,
   '1313': SundayData,

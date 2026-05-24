@@ -60,6 +60,25 @@ describe('characterData registry', () => {
     expect(energyGrant?.amount).toBe(40)
   })
 
+  test('Sparkle: skill advances single ally by 50%', () => {
+    const data = resolveCharacterData('1306' as CharacterId)
+    expect(data.grantsAdvanceOnAction?.[AbilityKind.SKILL]?.target).toBe('singleAlly')
+    expect(data.grantsAdvanceOnAction?.[AbilityKind.SKILL]?.avPercent).toBe(50)
+  })
+
+  test('Aventurine: energy-from-hit approx + FUA trigger', () => {
+    const data = resolveCharacterData('1304' as CharacterId)
+    expect(data.v1Approx?.energyFromEnemyAttacks?.avgPerEnemyTurn).toBe(6)
+    expect(data.fuaTriggers?.length).toBe(1)
+    expect(data.fuaTriggers?.[0].everyN).toBe(7)
+  })
+
+  test('Yunli: counter FUA trigger every 3', () => {
+    const data = resolveCharacterData('1221' as CharacterId)
+    expect(data.fuaTriggers?.[0].everyN).toBe(3)
+    expect(data.fuaTriggers?.[0].on).toBe('teammateAttack')
+  })
+
   test('overrides merge with defaults (energyOnAction)', () => {
     // Acheron's stacks ult doesn't touch energy gen — basic/skill energy still inherited.
     const data = resolveCharacterData('1308' as CharacterId)
