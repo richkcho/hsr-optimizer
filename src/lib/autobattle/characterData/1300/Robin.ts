@@ -9,4 +9,8 @@ export const RobinData: CharacterData = {
   grantsAdvanceOnAction: {
     [AbilityKind.ULT]: { target: 'allAllies', avPercent: 100 },
   },
+  abilityTargetHint: {
+    [AbilityKind.SKILL]: 'self',     // Pinion's Aria — self-buff that propagates to team
+    [AbilityKind.ULT]: 'allAllies',  // Concerto — team advance + team buff
+  },
 }

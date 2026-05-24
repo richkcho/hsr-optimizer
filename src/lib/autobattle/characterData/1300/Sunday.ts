@@ -13,4 +13,8 @@ export const SundayData: CharacterData = {
   grantsEnergyOnAction: {
     [AbilityKind.ULT]: { target: 'singleAlly', amount: 40 },
   },
+  abilityTargetHint: {
+    [AbilityKind.SKILL]: 'singleAlly',  // Benison of Paper and Rites
+    [AbilityKind.ULT]: 'singleAlly',    // Ode to Caress and Cicatrix — beatified on one ally
+  },
 }

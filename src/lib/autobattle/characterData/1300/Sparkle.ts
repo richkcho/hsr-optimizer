@@ -10,4 +10,8 @@ export const SparkleData: CharacterData = {
   grantsAdvanceOnAction: {
     [AbilityKind.SKILL]: { target: 'singleAlly', avPercent: 50 },
   },
+  abilityTargetHint: {
+    [AbilityKind.SKILL]: 'singleAlly',  // Dreamdiver — single ally advance + buff
+    [AbilityKind.ULT]: 'allAllies',     // Cipher — team-wide ATK buff
+  },
 }

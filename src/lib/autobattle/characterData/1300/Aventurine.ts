@@ -18,4 +18,7 @@ export const AventurineData: CharacterData = {
   v1Approx: {
     energyFromEnemyAttacks: { avgPerEnemyTurn: 6 },
   },
+  abilityTargetHint: {
+    [AbilityKind.SKILL]: 'allEnemies',  // AoE Imaginary attack (Imaginary Numinosity)
+  },
 }

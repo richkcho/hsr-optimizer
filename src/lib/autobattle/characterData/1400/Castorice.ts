@@ -1,4 +1,5 @@
 import type { CharacterData } from 'lib/autobattle/types'
+import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 
 // Castorice's Netherwing has a fixed memoBaseSpdFlat of 165 (per EntityDefinition), so
 // spdSource: 'entityDefinition' resolves correctly without needing an owner-SPD link.
@@ -9,5 +10,8 @@ export const CastoriceData: CharacterData = {
   memo: {
     entityName: 'Netherwing',
     spdSource: 'entityDefinition',
+  },
+  abilityTargetHint: {
+    [AbilityKind.SKILL]: 'allEnemies',  // Cry of the Forsaken — AoE HP-cost attack
   },
 }

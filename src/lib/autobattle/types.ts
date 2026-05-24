@@ -114,6 +114,18 @@ export interface DamageLedger {
 
 export type TurnLogKind = AbilityKind | 'TICK' | 'DOT_TICK' | 'BUFF_EXPIRE' | 'ENEMY_TURN'
 
+// Where the ability aims. Damage in v1 is scalar (per-actor x per-kind), so target is mainly
+// intent/documentation + forward-compat for per-enemy state. Side-effect routing (energy,
+// advance, buffs to teammates) still goes through GrantTarget on CharacterData/BuffGrant.
+export type AbilityTarget =
+  | 'mainEnemy'
+  | 'allEnemies'
+  | 'self'
+  | 'singleAlly'
+  | 'allAllies'
+  | { slot: SlotIndex }
+  | { enemyIndex: number }
+
 export interface TurnLogEntry {
   elapsedAv: number      // cumulative
   deltaAv: number        // how much AV advanced for this step (0 for out-of-turn ult)
@@ -125,6 +137,7 @@ export interface TurnLogEntry {
   spAfter?: number
   energyAfter?: number
   notes?: string[]       // tendency reasons, e.g. ['skill: SP>=1', 'energy<max']
+  target?: AbilityTarget // resolved target — precedence: chosen.target → data hint → kind default
 }
 
 export interface BattleState {
@@ -253,6 +266,10 @@ export interface CharacterData {
   grantsAdvanceOnAction?: Partial<Record<AbilityKind, AdvanceGrant>>
   grantsBuffsOnAction?: Partial<Record<AbilityKind, BuffGrant[]>>
 
+  // Per-character target defaults for each ability kind. Overrides the executor's
+  // kind-based default; can itself be overridden by ChosenAbility.target on a given turn.
+  abilityTargetHint?: Partial<Record<AbilityKind, AbilityTarget>>
+
   // v1 approximation flags for mechanics we don't fully simulate.
   v1Approx?: {
     // For Aventurine/Clara/Fu Xuan/March 7th: enemies don't attack, so we
@@ -278,6 +295,9 @@ export type ArchetypeId =
 export interface ChosenAbility {
   kind: AbilityKind
   reason: string
+  // Optional. When unset, the executor falls back to CharacterData.abilityTargetHint[kind],
+  // then to a kind-based default (most attacks → mainEnemy; ult → allEnemies).
+  target?: AbilityTarget
   // Explicit overrides — tendency can apply buffs/advances/energy grants that aren't
   // expressible via characterData. The executor merges these on top of characterData grants.
   buffsApplied?: Omit<ActiveBuff, 'sourceSlot'>[]

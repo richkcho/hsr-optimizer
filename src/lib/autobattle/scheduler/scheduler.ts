@@ -27,6 +27,7 @@ import {
   MAX_SKILL_POINTS,
 } from 'lib/autobattle/state/resources'
 import {
+  type AbilityTarget,
   type ActiveBuff,
   type ActorId,
   type AutobattleInput,
@@ -264,7 +265,21 @@ function executeAbility(
     spAfter: state.resources.skillPoints,
     energyAfter: state.resources.energy[actorId.slot],
     notes: chosen.reason ? [chosen.reason] : undefined,
+    target: resolveAbilityTarget(member, chosen),
   })
+}
+
+// Precedence: explicit tendency choice > characterData hint > kind-based default.
+export function resolveAbilityTarget(member: TeamMember, chosen: ChosenAbility): AbilityTarget {
+  if (chosen.target) return chosen.target
+  const hint = member.characterData.abilityTargetHint?.[chosen.kind]
+  if (hint) return hint
+  return defaultTargetForKind(chosen.kind)
+}
+
+export function defaultTargetForKind(kind: AbilityKind): AbilityTarget {
+  if (kind === AbilityKind.ULT) return 'allEnemies'
+  return 'mainEnemy'
 }
 
 function payAbilitySp(state: BattleState, member: TeamMember, kind: AbilityKind): void {

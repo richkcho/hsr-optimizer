@@ -13,4 +13,8 @@ export const LingshaData: CharacterData = {
       selector: { abilityKind: AbilityKind.FUA },
     },
   ],
+  abilityTargetHint: {
+    [AbilityKind.SKILL]: 'allEnemies',  // Befogging Brew — AoE attack + ally heal side effect
+    [AbilityKind.ULT]: 'allEnemies',    // Dust to Dust — AoE attack + team heal
+  },
 }
