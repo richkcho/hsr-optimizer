@@ -11,7 +11,7 @@ function makeMember(slot: SlotIndex, baseSpd = 100, maxEnergy = 120): TeamMember
     eidolon: 0,
     lightConeId: '' as TeamMemberInput['lightConeId'],
     lightConeSuperimposition: 1,
-    equippedRelicIds: {},
+    equippedRelics: {},
     baseSpd,
     maxEnergy,
     path: 'Destruction',

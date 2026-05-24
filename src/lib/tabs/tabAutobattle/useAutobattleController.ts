@@ -5,10 +5,21 @@ import type {
 } from 'lib/autobattle/types'
 import { SLOT_INDEXES } from 'lib/autobattle/types'
 import { runAutobattleViaWorker } from 'lib/autobattle/worker/autobattleWorkerRunner'
+import { Parts } from 'lib/constants/constants'
+import { BasicStatToKey } from 'lib/optimization/basicStatsArray'
+import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
 import { useAutobattleStore } from 'lib/stores/autobattle/autobattleStore'
+import {
+  getCharacterById,
+} from 'lib/stores/character/characterStore'
+import { getRelicById } from 'lib/stores/relic/relicStore'
 import { getGameMetadata } from 'lib/state/gameMetadata'
+import { isFlat } from 'lib/utils/statUtils'
+import { precisionRound } from 'lib/utils/mathUtils'
 import { useCallback } from 'react'
 import type { CharacterId } from 'types/character'
+import type { Relic } from 'types/relic'
+import type { StatsValues } from 'lib/constants/constants'
 
 interface CharacterMetaForSim {
   baseSpd: number
@@ -27,6 +38,37 @@ function readCharacterMeta(characterId: CharacterId): CharacterMetaForSim | null
   }
 }
 
+function relicToSimulationRelic(relic: Relic): SimulationRelic {
+  const condensedStats: [number, number][] = []
+  for (const substat of relic.substats) {
+    const key = BasicStatToKey[substat.stat]
+    const scale = isFlat(substat.stat) ? 1 : 0.01
+    condensedStats.push([key, precisionRound(substat.value * scale)])
+  }
+  if (relic.augmentedStats) {
+    condensedStats.push([
+      BasicStatToKey[relic.augmentedStats.mainStat as StatsValues],
+      relic.augmentedStats.mainValue,
+    ])
+  }
+  return { set: relic.set, condensedStats }
+}
+
+function resolveEquippedRelics(characterId: CharacterId): Partial<Record<Parts, SimulationRelic>> {
+  const character = getCharacterById(characterId)
+  const equipped = character?.equipped
+  if (!equipped) return {}
+  const result: Partial<Record<Parts, SimulationRelic>> = {}
+  for (const part of Object.values(Parts)) {
+    const relicId = equipped[part]
+    if (!relicId) continue
+    const relic = getRelicById(relicId)
+    if (!relic) continue
+    result[part] = relicToSimulationRelic(relic)
+  }
+  return result
+}
+
 export function useAutobattleController() {
   const runSimulation = useCallback(async () => {
     const state = useAutobattleStore.getState()
@@ -39,13 +81,15 @@ export function useAutobattleController() {
         useAutobattleStore.getState().setError(`Missing metadata for ${characterId}`)
         return
       }
+      const character = getCharacterById(characterId)
+      const form = character?.form
       teamInputs.push({
         slot,
         characterId,
-        eidolon: 0,
-        lightConeId: '' as TeamMemberInput['lightConeId'],
-        lightConeSuperimposition: 1,
-        equippedRelicIds: {},
+        eidolon: (form?.characterEidolon ?? 0) as TeamMemberInput['eidolon'],
+        lightConeId: (form?.lightCone ?? '') as TeamMemberInput['lightConeId'],
+        lightConeSuperimposition: form?.lightConeSuperimposition ?? 1,
+        equippedRelics: resolveEquippedRelics(characterId),
         baseSpd: meta.baseSpd,
         maxEnergy: meta.maxEnergy,
         path: meta.path,

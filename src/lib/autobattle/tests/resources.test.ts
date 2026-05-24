@@ -22,7 +22,7 @@ function makeMember(slot: SlotIndex, maxEnergy = 120): TeamMember {
     eidolon: 0,
     lightConeId: '' as TeamMember['lightConeId'],
     lightConeSuperimposition: 1,
-    equippedRelicIds: {},
+    equippedRelics: {},
     path: 'Destruction',
     maxEnergy,
     baseSpd: 100,

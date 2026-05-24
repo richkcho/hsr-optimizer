@@ -1,4 +1,5 @@
 import type { DamageResolver } from 'lib/autobattle/damage/damageRunner'
+import { createRealDamageResolver } from 'lib/autobattle/damage/damageRunner'
 import {
   advanceAllClocks,
   advancePercent,
@@ -42,12 +43,18 @@ import {
 import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 
 export interface RunOptions {
-  resolver: DamageResolver
+  // Phase B tests pass a mock resolver here. Phase C+ omits resolver and relies on
+  // buildResolvers: true to build the real pipeline-backed resolver from per-slot contexts.
+  resolver?: DamageResolver
+  // When true, createInitialBattleState builds per-slot OptimizerContext + c/x state for the
+  // real damage pipeline. Requires Metadata.initialize() to have been called first.
+  buildResolvers?: boolean
 }
 
-export function runAutobattle(input: AutobattleInput, options: RunOptions): AutobattleResult {
-  const state = createInitialBattleState(input)
-  const resolver = options.resolver
+export function runAutobattle(input: AutobattleInput, options: RunOptions = {}): AutobattleResult {
+  const buildResolvers = options.buildResolvers ?? !options.resolver
+  const { state, slotResolvers } = createInitialBattleState(input, { buildResolvers })
+  const resolver = options.resolver ?? createRealDamageResolver({ slotStates: slotResolvers })
 
   // Safety guard against infinite loops: cap total iterations at a generous multiple of the
   // worst-case turn count. (10000 AV / 1 AV per turn × 4 actors × 50 = 2,000,000 — far above
@@ -142,12 +149,17 @@ function processEnemyTurn(state: BattleState, resolver: DamageResolver): void {
   tickTurnsOnEnemy(state)
 
   for (const dot of firing) {
-    // Phase B: re-emit a DOT-tagged ability through the resolver attributed to the applier.
     const applierMember = state.members[dot.appliedBy]
     if (!applierMember) continue
     const primaryActor: ActorId = { slot: dot.appliedBy, kind: 'primary' }
-    const result = resolver.resolve(state, primaryActor, AbilityKind.DOT)
-    const dmg = result.totalDmg * Math.max(1, dot.stacks)
+
+    // Phase C: run the DoT's actual hit damage function via resolveHit when available,
+    // falling back to a full resolve call for the mock resolver case.
+    const ref = dot.hitTemplateRef
+    const perHit = resolver.resolveHit
+      ? resolver.resolveHit(state, ref.ownerSlot, ref.abilityKind, ref.hitIndex)
+      : resolver.resolve(state, primaryActor, AbilityKind.DOT).totalDmg
+    const dmg = perHit * Math.max(1, dot.stacks)
     addDamage(state.ledger, primaryActor, AbilityKind.DOT, dmg * state.enemy.count)
 
     appendLog(state, {

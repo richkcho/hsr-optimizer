@@ -1,4 +1,9 @@
 import { resolveCharacterData } from 'lib/autobattle/characterData/characterDataRegistry'
+import { buildPreBuiltActionsForSlot } from 'lib/autobattle/damage/actionBuilder'
+import {
+  buildSlotResolvers,
+  type SlotResolverState,
+} from 'lib/autobattle/damage/contextBuilder'
 import { avFromSpd, createClock } from 'lib/autobattle/scheduler/avQueue'
 import { createEnemyState } from 'lib/autobattle/state/enemy'
 import { createLedger } from 'lib/autobattle/state/ledger'
@@ -13,7 +18,17 @@ import {
   type TeamMember,
 } from 'lib/autobattle/types'
 
-export function createInitialBattleState(input: AutobattleInput): BattleState {
+export interface InitialBattleStateResult {
+  state: BattleState
+  // Per-slot c/x/teammate-assignment for the damage runner. Kept off BattleState because
+  // ComputedStatsContainer + BasicStatsArray are large and not serializable.
+  slotResolvers: Partial<Record<SlotIndex, SlotResolverState>>
+}
+
+export function createInitialBattleState(
+  input: AutobattleInput,
+  options?: { buildResolvers?: boolean },
+): InitialBattleStateResult {
   const members = {} as Record<SlotIndex, TeamMember>
   const clocks: ActorClock[] = []
 
@@ -31,7 +46,7 @@ export function createInitialBattleState(input: AutobattleInput): BattleState {
       eidolon: inputMember.eidolon,
       lightConeId: inputMember.lightConeId,
       lightConeSuperimposition: inputMember.lightConeSuperimposition,
-      equippedRelicIds: inputMember.equippedRelicIds,
+      equippedRelics: inputMember.equippedRelics,
       path: inputMember.path,
       maxEnergy: inputMember.maxEnergy,
       baseSpd: inputMember.baseSpd,
@@ -49,7 +64,25 @@ export function createInitialBattleState(input: AutobattleInput): BattleState {
     }
   }
 
-  return {
+  // Resolver state requires Metadata.initialize() to have been called. Tests that exercise
+  // only the scheduler (with the mock resolver) can opt out by passing buildResolvers: false.
+  const buildResolvers = options?.buildResolvers ?? false
+  const contexts = {} as BattleState['contexts']
+  const preBuiltActions = {} as BattleState['preBuiltActions']
+  let slotResolvers: Partial<Record<SlotIndex, SlotResolverState>> = {}
+
+  if (buildResolvers) {
+    const built = buildSlotResolvers(input)
+    slotResolvers = built.states
+    for (const slot of Object.keys(slotResolvers) as unknown as SlotIndex[]) {
+      const slotState = slotResolvers[slot]
+      if (!slotState) continue
+      contexts[slot] = slotState.context
+      Object.assign(preBuiltActions, buildPreBuiltActionsForSlot({ slot, kind: 'primary' }, slotState.context))
+    }
+  }
+
+  const state: BattleState = {
     enemy: createEnemyState(input.enemyCount, input.enemySpd),
     totalAv: input.totalAv,
     elapsedAv: 0,
@@ -60,9 +93,11 @@ export function createInitialBattleState(input: AutobattleInput): BattleState {
     activeBuffs: [],
     ledger: createLedger(),
     log: [],
-    contexts: {} as BattleState['contexts'],            // populated in Phase C
-    preBuiltActions: {} as BattleState['preBuiltActions'], // populated in Phase C
+    contexts,
+    preBuiltActions,
   }
+
+  return { state, slotResolvers }
 }
 
 // Memo SPD resolution for Phase B uses only the characterData.memo.spdSource field. The

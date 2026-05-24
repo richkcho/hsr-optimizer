@@ -1,11 +1,14 @@
-import { createMockDamageResolver } from 'lib/autobattle/damage/damageRunner'
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
 import type { AutobattleWorkerInput } from 'lib/autobattle/worker/autobattleWorkerRunner'
+import { Metadata } from 'lib/state/metadataInitializer'
 
-// Phase B: this worker runs the scheduler against the mock damage resolver. Phase C swaps
-// in the real OptimizerContext-backed resolver — at that point the worker will also need to
-// Metadata.initialize() the way the optimizer worker does today.
+let metadataInitialized = false
+
 export function autobattleWorker(e: MessageEvent<AutobattleWorkerInput>): void {
-  const result = runAutobattle(e.data.payload, { resolver: createMockDamageResolver() })
+  if (!metadataInitialized) {
+    Metadata.initialize()
+    metadataInitialized = true
+  }
+  const result = runAutobattle(e.data.payload, { buildResolvers: true })
   self.postMessage({ result })
 }

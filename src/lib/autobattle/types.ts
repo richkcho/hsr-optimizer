@@ -1,6 +1,7 @@
 import type { Parts, PathName } from 'lib/constants/constants'
 import type { StatKeyValue } from 'lib/optimization/engine/config/keys'
 import type { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
+import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
 import type { OptimizerAction, OptimizerContext } from 'types/optimizer'
 import type { CharacterId, Eidolon } from 'types/character'
 import type { LightConeId } from 'types/lightCone'
@@ -35,7 +36,7 @@ export interface TeamMember {
   eidolon: Eidolon
   lightConeId: LightConeId
   lightConeSuperimposition: number
-  equippedRelicIds: Partial<Record<Parts, string>>  // read from charactersById[id].equipped at sim-start
+  equippedRelics: Partial<Record<Parts, SimulationRelic>>
   path: PathName
   maxEnergy: number                                  // game_data.json max_sp (ult cost)
   baseSpd: number
@@ -154,10 +155,9 @@ export interface TeamMemberInput {
   eidolon: Eidolon
   lightConeId: LightConeId
   lightConeSuperimposition: number
-  // Only relic IDs are serializable; the worker re-reads relic objects from metadata.
-  equippedRelicIds: Partial<Record<Parts, string>>
-  // Derived stats provided by the main thread (avoids re-initializing metadata in the worker
-  // for Phase B; Phase C swaps to full context computation including buffs/relics).
+  // Resolved by the caller (UI hook reads relicStore; tests construct SimulationRelic directly).
+  // Each entry needs `set` and `condensedStats` to feed calculateRelicStats.
+  equippedRelics: Partial<Record<Parts, SimulationRelic>>
   baseSpd: number
   maxEnergy: number
   path: PathName
