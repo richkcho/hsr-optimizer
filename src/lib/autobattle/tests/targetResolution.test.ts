@@ -185,7 +185,7 @@ function singleSlotInput(characterId: CharacterId, lightConeId: LightConeId): Au
       },
     ],
     mainDpsSlot: 0,
-    enemyCount: 1,
+    enemies: [{ maxToughness: 100 }],
     enemySpd: 134,
     totalAv: 1200,
   }

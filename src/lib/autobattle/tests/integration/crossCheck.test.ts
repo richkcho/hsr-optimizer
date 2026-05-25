@@ -76,14 +76,15 @@ interface GoldenMember {
   }
 }
 
+interface GoldenEnemy {
+  maxToughness: number
+}
+
 interface GoldenScenario {
   mainDpsSlot: SlotIndex
-  enemyCount: number
+  enemies: GoldenEnemy[]
   enemySpd: number
   totalAv: number
-  // Aggregate toughness gauge. Defaults to AutobattleInput's default (100). Set explicitly
-  // when the reference run used non-default enemies (e.g. a boss with 140 toughness).
-  enemyMaxToughness?: number
 }
 
 interface GoldenFile {
@@ -157,10 +158,9 @@ function buildInput(golden: GoldenFile): AutobattleInput {
       path: m.path,
     })),
     mainDpsSlot: golden.scenario.mainDpsSlot,
-    enemyCount: golden.scenario.enemyCount,
+    enemies: golden.scenario.enemies.map((e) => ({ maxToughness: e.maxToughness })),
     enemySpd: golden.scenario.enemySpd,
     totalAv: golden.scenario.totalAv,
-    ...(golden.scenario.enemyMaxToughness !== undefined ? { enemyMaxToughness: golden.scenario.enemyMaxToughness } : {}),
   }
 }
 

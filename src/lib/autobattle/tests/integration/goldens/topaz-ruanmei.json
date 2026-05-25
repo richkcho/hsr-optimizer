@@ -91,10 +91,19 @@
   ],
   "scenario": {
     "mainDpsSlot": 0,
-    "enemyCount": 3,
+    "enemies": [
+      {
+        "maxToughness": 140
+      },
+      {
+        "maxToughness": 100
+      },
+      {
+        "maxToughness": 100
+      }
+    ],
     "enemySpd": 140,
-    "totalAv": 450,
-    "enemyMaxToughness": 113
+    "totalAv": 450
   },
   "reference": {
     "outcome": {
@@ -2562,7 +2571,7 @@
     "slot1 (Ruan Mei): missing ~119k BREAK from her break-zone passive (GenericAbilityStart events on enemy weakness recovery — not yet modeled in scheduler).",
     "slot2 (Robin): missing ~430k UNIQUE damage from Flowing Nightglow LC (per-teammate-attack Additional proc not yet triggered on teammate actions; see issue #3).",
     "slot3 (Aventurine): systematically low across BASIC / FUA / ULT (~70-82% under). Likely buff-propagation gap (Topaz Ashblazing 4pc, Robin Concerto, Ruan Mei Overtone) not all reaching teammates correctly.",
-    "slot0 BREAK over-attributed (+178%) — single-gauge break model credits the breaking attacker; reference spreads breaks across the attackers per enemy. Aggregate BREAK totals are closer (~177k ours vs ~174k ref, +2%)."
+    "slot0 BREAK: per-enemy gauges now credit each attacker independently. Topaz only breaks the boss (toughness 140) via her single-target attacks; AoE breakers (Aventurine, Ruan Mei) break the elites. Expect slot0 BREAK to drop substantially from the old +178% over-attribution."
   ],
   "tolerance": {
     "totalDamage": 0.1,

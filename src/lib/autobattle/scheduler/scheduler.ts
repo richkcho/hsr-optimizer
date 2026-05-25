@@ -34,6 +34,7 @@ import {
   type AutobattleResult,
   type BattleState,
   type ChosenAbility,
+  type EnemyState,
   type GrantTarget,
   serializeActorId,
   type SlotIndex,
@@ -268,32 +269,52 @@ function executeAbility(
     target: resolveAbilityTarget(member, chosen),
   })
 
-  // Break detection. Aggregate single-toughness-gauge model: this attack's total toughness
-  // damage drives a shared gauge across all enemies; when it crosses zero, treat all enemies
-  // as broken together (multiplied break damage by enemy.count). Only attacks that find the
-  // enemy in an unbroken state contribute — broken-state attacks waste their toughness.
-  if (resolved.toughnessDmg > 0 && state.enemy.brokenForEnemyTurns === undefined) {
-    state.enemy.toughness -= resolved.toughnessDmg
-    if (state.enemy.toughness <= 0) {
-      state.enemy.toughness = 0
-      state.enemy.brokenForEnemyTurns = 1
-      if (resolver.resolveBreak) {
-        const perEnemyBreak = resolver.resolveBreak(state, actorId.slot)
-        const breakDmg = perEnemyBreak * state.enemy.count
-        if (breakDmg > 0) {
-          addDamage(state.ledger, actorId, AbilityKind.BREAK, breakDmg)
-          appendLog(state, {
-            elapsedAv: state.elapsedAv,
-            deltaAv: 0,
-            actor: actorId,
-            kind: AbilityKind.BREAK,
-            description: `${member.characterId} BREAK (triggered by ${chosen.kind})`,
-            damage: breakDmg,
-          })
-        }
-      }
+  // Break detection. Per-enemy gauges: this attack's toughnessDmg is applied to each target
+  // enemy (single-target abilities → only enemy[0]; AoE → every enemy). Each broken enemy
+  // credits the breaking attacker once, using that enemy's own maxToughness in the
+  // break-damage formula. Broken enemies absorb no further toughness damage until recovery.
+  if (resolved.toughnessDmg > 0) {
+    const target = resolveAbilityTarget(member, chosen)
+    const targetIndices = resolveTargetEnemyIndices(target, state.enemy)
+    for (const i of targetIndices) {
+      if (state.enemy.brokenForEnemyTurns[i] !== undefined) continue
+      state.enemy.toughness[i] -= resolved.toughnessDmg
+      if (state.enemy.toughness[i] > 0) continue
+
+      state.enemy.toughness[i] = 0
+      state.enemy.brokenForEnemyTurns[i] = 1
+      if (!resolver.resolveBreak) continue
+
+      const breakDmg = resolver.resolveBreak(state, actorId.slot, state.enemy.maxToughness[i])
+      if (breakDmg <= 0) continue
+
+      addDamage(state.ledger, actorId, AbilityKind.BREAK, breakDmg)
+      appendLog(state, {
+        elapsedAv: state.elapsedAv,
+        deltaAv: 0,
+        actor: actorId,
+        kind: AbilityKind.BREAK,
+        description: `${member.characterId} BREAK on enemy ${i} (triggered by ${chosen.kind})`,
+        damage: breakDmg,
+      })
     }
   }
+}
+
+// Map an AbilityTarget onto concrete enemy indices that take toughness damage.
+// Ally-targeted variants (self/singleAlly/allAllies/{kind:'slot'}) hit zero enemies — they
+// can still carry toughness damage on hits (rare for support kits), but it goes nowhere.
+function resolveTargetEnemyIndices(target: AbilityTarget, enemy: EnemyState): number[] {
+  if (target === 'mainEnemy') return [0]
+  if (target === 'allEnemies') {
+    const all: number[] = []
+    for (let i = 0; i < enemy.count; i++) all.push(i)
+    return all
+  }
+  if (typeof target === 'object' && target.kind === 'enemy') {
+    return target.enemyIndex >= 0 && target.enemyIndex < enemy.count ? [target.enemyIndex] : []
+  }
+  return []
 }
 
 // Precedence: explicit tendency choice > characterData hint > kind-based default.

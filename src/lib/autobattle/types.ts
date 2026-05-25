@@ -66,19 +66,21 @@ export interface ResourceState {
 }
 
 export interface EnemyState {
-  count: number
-  spd: number          // configurable; default ~134 (avg lvl 95 elite)
-  clockAv: number      // ticks down by dt; resets to 10000/spd; triggers DoT ticks
+  count: number       // derived === toughness.length; kept for read-site clarity
+  spd: number         // shared across all enemies; configurable
+  clockAv: number     // ticks down by dt; resets to 10000/spd; triggers DoT ticks
   dots: ActiveDot[]
 
-  // Toughness/break state. v1 uses a single aggregate gauge across all enemies — when it
-  // drops to 0, all enemies are treated as broken together. Per-enemy + weakness tracking is
-  // deferred (see scheduler.ts break detection for the simplifications).
-  maxToughness: number
-  toughness: number
-  // Countdown in enemy clock cycles. Set to 1 on break, decremented in processEnemyTurn;
-  // when 0 the broken state ends and toughness is restored to maxToughness.
-  brokenForEnemyTurns?: number
+  // Per-enemy toughness/break state. All arrays have length === count.
+  // Each ability decrements only its target enemy's gauge (or each, for AoE), and
+  // break credits the breaker once per broken enemy using that enemy's maxToughness.
+  // Weakness/element tracking is deferred — every hit currently reduces toughness.
+  maxToughness: number[]
+  toughness: number[]
+  // Countdown in enemy clock cycles per enemy. Set to 1 on break, decremented in
+  // processEnemyTurn; when 0 the broken state ends and toughness restores to maxToughness.
+  // `undefined` at a given index means that enemy is not currently broken.
+  brokenForEnemyTurns: (number | undefined)[]
 }
 
 export interface ActiveDot {
@@ -189,15 +191,19 @@ export interface TeamMemberInput {
   path: PathName
 }
 
+export interface AutobattleInputEnemy {
+  // Per-enemy toughness gauge for break detection. Standard elites run 100; bosses run
+  // 120–240. Per-element weakness lists will live alongside this once weakness routing
+  // lands (issue tracks v1.5).
+  maxToughness: number
+}
+
 export interface AutobattleInput {
   team: TeamMemberInput[]                                  // length 1..4
   mainDpsSlot: SlotIndex
-  enemyCount: number
+  enemies: AutobattleInputEnemy[]                          // length 1..N; sets enemy.count
   enemySpd: number
   totalAv: number
-  // Per-enemy toughness gauge for break detection. Defaults to 100 (standard elite). Bosses
-  // typically run higher (120–240); set explicitly for matched golden captures.
-  enemyMaxToughness?: number
 }
 
 export interface AutobattleResult {

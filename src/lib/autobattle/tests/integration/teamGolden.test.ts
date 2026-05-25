@@ -181,7 +181,7 @@ function makeInput(): AutobattleInput {
   return {
     team: TEAM.map(memberInput),
     mainDpsSlot: 0,
-    enemyCount: 1,
+    enemies: [{ maxToughness: 100 }],
     enemySpd: 134,
     totalAv: 6000,
   }

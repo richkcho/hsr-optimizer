@@ -34,8 +34,11 @@ export interface DamageResolver {
   // Computes break damage credited to the breaking attacker. Caller must ensure
   // `resolve()` (or `resolveHit()`) was just invoked for this slot/kind so the slot's
   // ComputedStatsContainer is primed with the right action's hit-level values.
+  // `enemyMaxToughness` overrides the context-level value so a single sim can break enemies
+  // of different toughness in the same run (bosses vs elites). When undefined, falls back to
+  // context.enemyMaxToughness.
   // Optional because mock resolvers in tests may not implement it.
-  resolveBreak?(state: BattleState, applierSlot: SlotIndex): number
+  resolveBreak?(state: BattleState, applierSlot: SlotIndex, enemyMaxToughness?: number): number
 }
 
 export interface CreateRealResolverOptions {
@@ -68,10 +71,10 @@ export function createRealDamageResolver(opts: CreateRealResolverOptions): Damag
       const hit = action.hits[hitIndex]
       return getDamageFunction(hit.damageFunctionType).apply(slotState.x, action, hitIndex, slotState.context)
     },
-    resolveBreak(_state, applierSlot) {
+    resolveBreak(_state, applierSlot, enemyMaxToughness) {
       const slotState = opts.slotStates[applierSlot]
       if (!slotState) return 0
-      return computeBreakDamage(slotState)
+      return computeBreakDamage(slotState, enemyMaxToughness)
     },
   }
 }
@@ -86,7 +89,9 @@ export function createRealDamageResolver(opts: CreateRealResolverOptions): Damag
 //     break multipliers). Bosses with break-amped abilities will read slightly
 //     low here until we wire per-hit break overrides.
 // Caller must have just invoked `resolve()` for this slot so x is primed.
-function computeBreakDamage(slotState: SlotResolverState): number {
+// `enemyMaxToughness` overrides the breakBaseMulti factor for the specific broken enemy;
+// undefined falls back to the context value (averaged across enemies at form-build time).
+function computeBreakDamage(slotState: SlotResolverState, enemyMaxToughness?: number): number {
   const { x, context } = slotState
   const hitIndex = 0
 
@@ -97,13 +102,14 @@ function computeBreakDamage(slotState: SlotResolverState): number {
   const be = x.getValue(StatKey.BE, hitIndex)
   const trueDmgMod = x.getValue(StatKey.TRUE_DMG_MODIFIER, hitIndex)
 
+  const effectiveMaxToughness = enemyMaxToughness ?? context.enemyMaxToughness
   const baseUniversalMulti = 0.9    // attacker breaks the enemy — break dmg lands before broken state takes hold
   const defMulti = 100 / ((context.enemyLevel + 20) * (1 - defPen) + 100)
   const resMulti = 1 - (context.enemyDamageResistance - resPen)
   const vulnMulti = 1 + vuln
   const finalDmgMulti = 1 + finalDmgBoost
   const breakBaseMulti = 3767.5533 * context.elementalBreakScaling
-    * (0.5 + context.enemyMaxToughness / 120)
+    * (0.5 + effectiveMaxToughness / 120)
   const beMulti = 1 + be
   const trueDmgMulti = 1 + trueDmgMod
 
@@ -131,7 +137,7 @@ export function createMockDamageResolver(
       const toughnessDmg = toughnessMap[kind] ?? 0
       return { totalDmg: dmg, perHit: [dmg], toughnessDmg }
     },
-    resolveBreak(_state, _applierSlot) {
+    resolveBreak(_state, _applierSlot, _enemyMaxToughness) {
       return breakDmg
     },
   }

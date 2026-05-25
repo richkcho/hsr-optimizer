@@ -1,6 +1,8 @@
 import { createMockDamageResolver } from 'lib/autobattle/damage/damageRunner'
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
-import type { AutobattleInput, SlotIndex, TeamMemberInput } from 'lib/autobattle/types'
+import { registerCharacterData } from 'lib/autobattle/characterData/characterDataRegistry'
+import type { AutobattleInput, AutobattleInputEnemy, SlotIndex, TeamMemberInput } from 'lib/autobattle/types'
+import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 import { describe, expect, test } from 'vitest'
 import type { CharacterId } from 'types/character'
 
@@ -18,11 +20,15 @@ function makeMember(slot: SlotIndex, baseSpd = 100, maxEnergy = 120): TeamMember
   }
 }
 
+function enemies(...toughnesses: number[]): AutobattleInputEnemy[] {
+  return toughnesses.map((maxToughness) => ({ maxToughness }))
+}
+
 function makeInput(team: TeamMemberInput[], overrides: Partial<AutobattleInput> = {}): AutobattleInput {
   return {
     team,
     mainDpsSlot: 0,
-    enemyCount: 1,
+    enemies: enemies(100),
     enemySpd: 134,
     totalAv: 10000,
     ...overrides,
@@ -143,19 +149,41 @@ describe('break damage', () => {
     expect(breakLogEntries.length).toBe(1)
   })
 
-  test('aggregate gauge multiplies break by enemyCount', () => {
-    const one = runAutobattle(
-      makeInput([makeMember(0, 100, 9999)], { totalAv: 500, enemySpd: 10, enemyCount: 1 }),
+  test('single-target ability only breaks its target enemy; other enemies untouched', () => {
+    // 3 enemies, default 'mainEnemy' target on BASIC → only enemy 0 takes toughness damage.
+    // After 2 basics enemy 0 breaks; enemies 1 and 2 stay unbroken. One break credit.
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 500, enemySpd: 10, enemies: enemies(100, 100, 100) }),
       { resolver: mockWithBreak() },
     )
-    const three = runAutobattle(
-      makeInput([makeMember(0, 100, 9999)], { totalAv: 500, enemySpd: 10, enemyCount: 3 }),
+    const breakDmg = result.ledger.byActorBySource['0:primary']?.BREAK ?? 0
+    expect(breakDmg).toBe(2000)  // one break × mock breakDmg=2000
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBe(1)
+  })
+
+  test('AoE ability breaks each enemy independently → one credit per broken enemy', () => {
+    // Register a phantom characterData under an unused id with allEnemies hints so the
+    // pureDps tendency's BASIC/SKILL actions sweep all 3 enemies. 2 attacks break all three
+    // independently. The id is unique to this test so the registry mutation can't leak.
+    const aoeCharId = '9999' as CharacterId
+    registerCharacterData(aoeCharId, {
+      abilityTargetHint: {
+        [AbilityKind.BASIC]: 'allEnemies',
+        [AbilityKind.SKILL]: 'allEnemies',
+      },
+    })
+    const aoeMember: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: aoeCharId }
+
+    const result = runAutobattle(
+      makeInput([aoeMember], { totalAv: 500, enemySpd: 10, enemies: enemies(100, 100, 100) }),
       { resolver: mockWithBreak() },
     )
-    const oneBreak = one.ledger.byActorBySource['0:primary']?.BREAK ?? 0
-    const threeBreak = three.ledger.byActorBySource['0:primary']?.BREAK ?? 0
-    expect(oneBreak).toBeGreaterThan(0)
-    expect(threeBreak).toBe(oneBreak * 3)
+    const breakDmg = result.ledger.byActorBySource['0:primary']?.BREAK ?? 0
+    // 3 enemies × mock breakDmg=2000 = 6000
+    expect(breakDmg).toBe(6000)
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBe(3)
   })
 
   test('toughness restores after enemy turn → second break can fire', () => {
@@ -168,11 +196,11 @@ describe('break damage', () => {
     expect(breakLogEntries.length).toBeGreaterThan(1)
   })
 
-  test('input.enemyMaxToughness overrides default 100', () => {
-    // maxToughness 20: a single skill (30 toughness dmg) is enough to break immediately.
+  test('per-enemy maxToughness drives break timing — low-toughness enemy breaks in 1 hit', () => {
+    // enemies(20): a single skill (30 toughness dmg) is enough to break immediately.
     // pureDps prefers SKILL while SP affords, so the first action is SKILL.
     const result = runAutobattle(
-      makeInput([makeMember(0, 100, 9999)], { totalAv: 200, enemySpd: 10, enemyMaxToughness: 20 }),
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 200, enemySpd: 10, enemies: enemies(20) }),
       { resolver: mockWithBreak() },
     )
     const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')

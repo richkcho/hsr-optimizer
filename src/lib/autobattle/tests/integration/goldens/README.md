@@ -39,7 +39,11 @@ in the `BattleRecord` shape.
   ],
   "scenario": {
     "mainDpsSlot": 0,
-    "enemyCount": 3,
+    "enemies": [
+      { "maxToughness": 140 },
+      { "maxToughness": 100 },
+      { "maxToughness": 100 }
+    ],
     "enemySpd": 134,
     "totalAv": 449
   },

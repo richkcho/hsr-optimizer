@@ -100,10 +100,12 @@ export function useAutobattleController() {
       return
     }
 
+    // The UI exposes a simple 1/3/5 enemy-count selector; per-enemy toughness lives on the
+    // input shape but isn't user-facing yet, so fan out to uniform 100-toughness enemies.
     const input: AutobattleInput = {
       team: teamInputs,
       mainDpsSlot: state.mainDpsSlot,
-      enemyCount: state.enemyCount,
+      enemies: Array.from({ length: state.enemyCount }, () => ({ maxToughness: 100 })),
       enemySpd: state.enemySpd,
       totalAv: state.totalAv,
     }

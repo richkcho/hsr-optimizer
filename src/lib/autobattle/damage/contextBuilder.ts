@@ -52,16 +52,24 @@ export interface BuildSlotResolversResult {
 
 const EMPTY_RELIC: SimulationRelic = { set: '', condensedStats: [] }
 
-// Standard autobattle enemy params. `enemyMaxToughness` flows from the input (default 100)
-// and feeds context.enemyMaxToughness, which `BreakDamageFunction` uses in its base multi.
+// Standard autobattle enemy params. The form-level `enemyMaxToughness` is derived from the
+// per-enemy descriptors (averaged across enemies — see deriveContextMaxToughness). Per-enemy
+// break-damage computation overrides this on a per-break basis (see damageRunner's
+// resolveBreak), so the form value is the fallback used by other contexts (e.g. character
+// conditionals that reference context.enemyMaxToughness, like Boothill super-break or
+// Dahlia E1 toughnessDmg scaling).
 const AUTOBATTLE_ENEMY_DEFAULTS = {
   enemyLevel: 95,
-  enemyMaxToughness: 100,
   enemyWeaknessBroken: false,
   enemyResistance: 0,
   enemyEffectResistance: 0.4,
   enemyElementalWeak: false,
 } as const
+
+function deriveContextMaxToughness(input: AutobattleInput): number {
+  const sum = input.enemies.reduce((acc, e) => acc + e.maxToughness, 0)
+  return sum / input.enemies.length
+}
 
 // Builds per-slot OptimizerContext + initialized BasicStatsArrayCore + ComputedStatsContainer.
 // The other 3 slots become teammate0/teammate1/teammate2 in stable battle-slot order.
@@ -123,9 +131,9 @@ function buildFormForSlot(
   }
 
   // Override enemy fields with autobattle v1 defaults
-  form.enemyCount = input.enemyCount
+  form.enemyCount = input.enemies.length
   form.enemyLevel = AUTOBATTLE_ENEMY_DEFAULTS.enemyLevel
-  form.enemyMaxToughness = input.enemyMaxToughness ?? AUTOBATTLE_ENEMY_DEFAULTS.enemyMaxToughness
+  form.enemyMaxToughness = deriveContextMaxToughness(input)
   form.enemyWeaknessBroken = AUTOBATTLE_ENEMY_DEFAULTS.enemyWeaknessBroken
   form.enemyResistance = AUTOBATTLE_ENEMY_DEFAULTS.enemyResistance
   form.enemyEffectResistance = AUTOBATTLE_ENEMY_DEFAULTS.enemyEffectResistance
