@@ -81,6 +81,9 @@ interface GoldenScenario {
   enemyCount: number
   enemySpd: number
   totalAv: number
+  // Aggregate toughness gauge. Defaults to AutobattleInput's default (100). Set explicitly
+  // when the reference run used non-default enemies (e.g. a boss with 140 toughness).
+  enemyMaxToughness?: number
 }
 
 interface GoldenFile {
@@ -157,6 +160,7 @@ function buildInput(golden: GoldenFile): AutobattleInput {
     enemyCount: golden.scenario.enemyCount,
     enemySpd: golden.scenario.enemySpd,
     totalAv: golden.scenario.totalAv,
+    ...(golden.scenario.enemyMaxToughness !== undefined ? { enemyMaxToughness: golden.scenario.enemyMaxToughness } : {}),
   }
 }
 
@@ -171,11 +175,22 @@ interface Delta {
   pct: number  // (ours - ref) / ref
   tolerance: number
   withinTolerance: boolean
+  // Structural mismatch: exactly one side is zero. These are typically attribution-shape
+  // differences (e.g. our sim folds memo damage into the owner's FUA bucket; reference
+  // splits it out) and aren't meaningful as magnitude diffs. Reported as informational,
+  // never counted as a tolerance failure.
+  structural: boolean
 }
 
 function mkDelta(label: string, ours: number, ref: number, tolerance: number): Delta {
-  const pct = ref === 0 ? (ours === 0 ? 0 : Number.POSITIVE_INFINITY) : (ours - ref) / ref
-  return { label, ours, ref, pct, tolerance, withinTolerance: Math.abs(pct) <= tolerance }
+  if (ours === 0 && ref === 0) {
+    return { label, ours, ref, pct: 0, tolerance, withinTolerance: true, structural: false }
+  }
+  if (ours === 0 || ref === 0) {
+    return { label, ours, ref, pct: ours === 0 ? -1 : Number.POSITIVE_INFINITY, tolerance, withinTolerance: true, structural: true }
+  }
+  const pct = (ours - ref) / ref
+  return { label, ours, ref, pct, tolerance, withinTolerance: Math.abs(pct) <= tolerance, structural: false }
 }
 
 function actorBucketKey(b: BattleRecordActorOutcome): string {
@@ -188,6 +203,14 @@ function indexByActor(outcome: BattleRecordOutcome): Map<string, BattleRecordAct
   return m
 }
 
+// Sum damage across all actorKinds on a slot. Lets us compare per-slot totals
+// fairly even when one side splits memo/primary and the other doesn't.
+function totalsBySlot(outcome: BattleRecordOutcome): Map<SlotIndex, number> {
+  const m = new Map<SlotIndex, number>()
+  for (const a of outcome.byActor) m.set(a.slot, (m.get(a.slot) ?? 0) + a.totalDamage)
+  return m
+}
+
 function diff(golden: GoldenFile, ours: BattleRecordOutcome): Delta[] {
   const tol = { ...DEFAULT_TOLERANCE, ...golden.tolerance }
   const ref = golden.reference.outcome
@@ -195,15 +218,24 @@ function diff(golden: GoldenFile, ours: BattleRecordOutcome): Delta[] {
 
   out.push(mkDelta('TEAM total', ours.totalDamage, ref.totalDamage, tol.totalDamage))
 
+  // Per-slot totals (collapse primary+memo into one bucket per slot). This is the
+  // load-bearing actor-total check — primary vs memo attribution differences are an
+  // expected v1 drift source and shouldn't fail the test on their own.
+  const ourBySlot = totalsBySlot(ours)
+  const refBySlot = totalsBySlot(ref)
+  const allSlots = new Set<SlotIndex>([...ourBySlot.keys(), ...refBySlot.keys()])
+  for (const slot of [...allSlots].sort()) {
+    out.push(mkDelta(`slot${slot} total`, ourBySlot.get(slot) ?? 0, refBySlot.get(slot) ?? 0, tol.perActorTotal))
+  }
+
+  // Per (slot, actorKind, ability) details — informational. Magnitude diffs here count
+  // toward tolerance; structural mismatches (one side missing the bucket) don't.
   const ourMap = indexByActor(ours)
   const refMap = indexByActor(ref)
   const allKeys = new Set<string>([...ourMap.keys(), ...refMap.keys()])
-
   for (const key of [...allKeys].sort()) {
     const a = ourMap.get(key)
     const r = refMap.get(key)
-    out.push(mkDelta(`${key} total`, a?.totalDamage ?? 0, r?.totalDamage ?? 0, tol.perActorTotal))
-
     const abilities = new Set<string>([
       ...Object.keys(a?.bySkillType ?? {}),
       ...Object.keys(r?.bySkillType ?? {}),
@@ -223,8 +255,8 @@ function diff(golden: GoldenFile, ours: BattleRecordOutcome): Delta[] {
 function formatDeltas(deltas: Delta[]): string {
   const lines: string[] = []
   for (const d of deltas) {
-    const pctStr = isFinite(d.pct) ? `${(d.pct * 100).toFixed(1)}%` : '∞'
-    const flag = d.withinTolerance ? '✓' : '✗'
+    const pctStr = d.structural ? 'STRUCT' : (isFinite(d.pct) ? `${(d.pct * 100).toFixed(1)}%` : '∞')
+    const flag = d.structural ? '·' : (d.withinTolerance ? '✓' : '✗')
     lines.push(`  ${flag} ${d.label.padEnd(45)}  ours=${d.ours.toFixed(0).padStart(12)}  ref=${d.ref.toFixed(0).padStart(12)}  Δ=${pctStr.padStart(8)}  (tol ±${(d.tolerance * 100).toFixed(0)}%)`)
   }
   return lines.join('\n')

@@ -1,0 +1,2572 @@
+{
+  "name": "topaz-ruanmei",
+  "description": "Topaz / Ruan Mei / Robin / Aventurine — multi-enemy (1 boss + 2 elites), ~3 cycles in reference UI",
+  "captureDate": "2026-05-24",
+  "captureNotes": "Extracted via .tmp/ext/extract-battle-record.cjs from raw log at .tmp/raw-battle-log-topaz.json. Some relic 4pc sets (Ruan Mei, Robin, Aventurine) inferred from canonical builds since passive 4pc bonuses don't emit BuffApply entries. enemySpd/enemyMaxToughness averaged across boss (SPD 158, tough 140) and 2 elites (SPD 132, tough 100).",
+  "team": [
+    {
+      "slot": 0,
+      "characterId": "1112",
+      "referenceName": "Topaz & Numby",
+      "lightConeId": "23016",
+      "lightConeName": "Worrisome, Blissful",
+      "eidolon": 0,
+      "lightConeSuperimposition": 1,
+      "baseSpd": 110,
+      "maxEnergy": 130,
+      "path": "Hunt",
+      "relicSet1": "TheAshblazingGrandDuke",
+      "relicSet2": "TheAshblazingGrandDuke",
+      "ornamentSet": "DuranDynastyOfRunningWolves",
+      "mains": {
+        "body": "CD",
+        "feet": "ATK_P",
+        "planarSphere": "Fire_DMG",
+        "linkRope": "ATK_P"
+      }
+    },
+    {
+      "slot": 1,
+      "characterId": "1303",
+      "referenceName": "Ruan Mei",
+      "lightConeId": "23019",
+      "lightConeName": "Past Self in the Mirror",
+      "eidolon": 0,
+      "lightConeSuperimposition": 1,
+      "baseSpd": 104,
+      "maxEnergy": 130,
+      "path": "Harmony",
+      "relicSet1": "WatchmakerMasterOfDreamMachinations",
+      "relicSet2": "WatchmakerMasterOfDreamMachinations",
+      "ornamentSet": "LushakaTheSunkenSeas",
+      "mains": {
+        "body": "ATK_P",
+        "feet": "SPD",
+        "planarSphere": "ATK_P",
+        "linkRope": "ERR"
+      }
+    },
+    {
+      "slot": 2,
+      "characterId": "1309",
+      "referenceName": "Robin",
+      "lightConeId": "23026",
+      "lightConeName": "Flowing Nightglow",
+      "eidolon": 0,
+      "lightConeSuperimposition": 1,
+      "baseSpd": 102,
+      "maxEnergy": 160,
+      "path": "Harmony",
+      "relicSet1": "MusketeerOfWildWheat",
+      "relicSet2": "MusketeerOfWildWheat",
+      "ornamentSet": "BrokenKeel",
+      "mains": {
+        "body": "ATK_P",
+        "feet": "SPD",
+        "planarSphere": "ATK_P",
+        "linkRope": "ERR"
+      }
+    },
+    {
+      "slot": 3,
+      "characterId": "1304",
+      "referenceName": "Aventurine",
+      "lightConeId": "23023",
+      "lightConeName": "Inherently Unjust Destiny",
+      "eidolon": 0,
+      "lightConeSuperimposition": 1,
+      "baseSpd": 102,
+      "maxEnergy": 110,
+      "path": "Preservation",
+      "relicSet1": "KnightOfPurityPalace",
+      "relicSet2": "KnightOfPurityPalace",
+      "ornamentSet": "GuardOfWutheringSnow",
+      "mains": {
+        "body": "DEF_P",
+        "feet": "DEF_P",
+        "planarSphere": "DEF_P",
+        "linkRope": "ERR"
+      }
+    }
+  ],
+  "scenario": {
+    "mainDpsSlot": 0,
+    "enemyCount": 3,
+    "enemySpd": 140,
+    "totalAv": 450,
+    "enemyMaxToughness": 113
+  },
+  "reference": {
+    "outcome": {
+      "totalAv": 448.6349367088609,
+      "totalDamage": 2369668.9942887076,
+      "damagePerAv": 5281.953767738983,
+      "byActor": [
+        {
+          "actorKey": "ally:1:primary",
+          "slot": 1,
+          "actorKind": "primary",
+          "totalDamage": 150850.20979648302,
+          "bySkillType": {
+            "SKILL": 0,
+            "BASIC": 31336.746170266095,
+            "ULT": 0,
+            "BREAK": 119513.46362621692
+          },
+          "skillUseCount": {
+            "SKILL": 4,
+            "BASIC": 7,
+            "ULT": 3,
+            "BREAK": 7
+          },
+          "turnsTaken": 10
+        },
+        {
+          "actorKey": "ally:2:primary",
+          "slot": 2,
+          "actorKind": "primary",
+          "totalDamage": 439341.0038010622,
+          "bySkillType": {
+            "SKILL": 0,
+            "ULT": 0,
+            "FUA": 430471.0997820434,
+            "BASIC": 8869.904019018752
+          },
+          "skillUseCount": {
+            "SKILL": 2,
+            "ULT": 3,
+            "FUA": 36,
+            "BASIC": 3
+          },
+          "turnsTaken": 5
+        },
+        {
+          "actorKey": "ally:3:primary",
+          "slot": 3,
+          "actorKind": "primary",
+          "totalDamage": 289407.59366407496,
+          "bySkillType": {
+            "BASIC": 50758.957963804234,
+            "ULT": 85749.63608828632,
+            "FUA": 152898.9996119845
+          },
+          "skillUseCount": {
+            "BASIC": 8,
+            "ULT": 4,
+            "FUA": 9
+          },
+          "turnsTaken": 8
+        },
+        {
+          "actorKey": "ally:0:primary",
+          "slot": 0,
+          "actorKind": "primary",
+          "totalDamage": 373694.2228991935,
+          "bySkillType": {
+            "SKILL": 309358.4313381703,
+            "ULT": 0,
+            "BREAK": 54505.1059735814,
+            "DOT": 9830.685587441862
+          },
+          "skillUseCount": {
+            "SKILL": 7,
+            "ULT": 3,
+            "BREAK": 2,
+            "DOT": 4
+          },
+          "turnsTaken": 7
+        },
+        {
+          "actorKey": "ally:0:memo",
+          "slot": 0,
+          "actorKind": "memo",
+          "totalDamage": 1116375.964127894,
+          "bySkillType": {
+            "FUA": 1116375.964127894
+          },
+          "skillUseCount": {
+            "FUA": 18
+          },
+          "turnsTaken": 18
+        }
+      ],
+      "timeline": [
+        {
+          "actionValue": 0,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 0,
+          "hits": []
+        },
+        {
+          "actionValue": 43.68796309240878,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 43.68796309240878,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 0,
+          "hits": []
+        },
+        {
+          "actionValue": 53.131575032410254,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 53.131575032410254,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 1838.173135976563,
+          "hits": [
+            1838.173135976563
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 53.131575032410254,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 59.99088138602932,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 59.99088138602932,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 5958.079247357932,
+          "hits": [
+            5958.079247357932
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 63.29113924050633,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "enemy",
+            "index": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 23905.50023447941,
+          "hits": [
+            23905.50023447941
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 19987.36273101363,
+          "hits": [
+            3541.555590293245,
+            2340.6739900334733,
+            2340.6739900334733,
+            3541.555590293245,
+            2340.6739900334733,
+            2340.6739900334733,
+            3541.555590293245
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 44631.93149353119,
+          "hits": [
+            6375.9902133616,
+            6375.9902133616,
+            6375.9902133616,
+            6375.9902133616,
+            6375.9902133616,
+            6375.9902133616,
+            6375.9902133616
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 46729.53417605867,
+          "hits": [
+            6675.647739436953,
+            6675.647739436953,
+            6675.647739436953,
+            6675.647739436953,
+            6675.647739436953,
+            6675.647739436953,
+            6675.647739436953
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 5613.146317909391,
+          "hits": [
+            5613.146317909391
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 103785.76207734545,
+          "hits": [
+            10378.576207734546,
+            10378.576207734546,
+            10378.576207734546,
+            10378.576207734546,
+            10378.576207734546,
+            10378.576207734546,
+            10378.576207734546,
+            31135.72862320364
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 7986.866899926709,
+          "hits": [
+            7986.866899926709
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 105292.52401226628,
+          "hits": [
+            10529.25240122663,
+            10529.25240122663,
+            10529.25240122663,
+            10529.25240122663,
+            10529.25240122663,
+            10529.25240122663,
+            10529.25240122663,
+            31587.757203679877
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "enemy",
+            "index": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 24224.504581653135,
+          "hits": [
+            4400.822742927131,
+            2755.509088217935,
+            2755.509088217935,
+            4400.822742927131,
+            2755.509088217935,
+            2755.509088217935,
+            4400.822742927131
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 30280.614429767444,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 41569.90039172762,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 14482.366381645172,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 75.75757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 57637.7098762597,
+          "hits": [
+            7628.520424799077,
+            7628.520424799077,
+            8476.133805332309,
+            8476.133805332309,
+            8476.133805332309,
+            8476.133805332309,
+            8476.133805332309
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 128.889150789986,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 128.889150789986,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 0,
+          "hits": []
+        },
+        {
+          "actionValue": 135.74845714360507,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 135.74845714360507,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 135.74845714360507,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 6761.368804170759,
+          "hits": [
+            6761.368804170759
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 138.25757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 138.25757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 138.25757575757575,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 142.40506329113924,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 142.40506329113924,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "DOT_TICK",
+          "ability": "DOT",
+          "damage": 2313.1024911627906,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 142.40506329113924,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 6928.316731954605,
+          "damageType": "Ice"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "enemy",
+            "index": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "enemy",
+            "index": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13691.75513942262,
+          "hits": [
+            2600.2294408467337,
+            1472.7667042206042,
+            1472.7667042206042,
+            2600.2294408467337,
+            1472.7667042206042,
+            1472.7667042206042,
+            2600.2294408467337
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 18259.586195953827,
+          "hits": [
+            18259.586195953827
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 151.5151515151515,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 152.03522640593576,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 152.03522640593576,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 152.03522640593576,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 152.03522640593576,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 152.03522640593576,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 152.03522640593576,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 182.02072582239623,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 182.02072582239623,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 182.02072582239623,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 4751.869898759273,
+          "hits": [
+            4751.869898759273
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "DOT_TICK",
+          "ability": "DOT",
+          "damage": 2313.1024911627906,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 9930.765518842403,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 12911.6863071686,
+          "hits": [
+            2340.2064967620604,
+            1472.7667042206042,
+            1472.7667042206042,
+            2340.2064967620604,
+            1472.7667042206042,
+            1472.7667042206042,
+            2340.2064967620604
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 183.3612658227848,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 53399.64297359354,
+          "hits": [
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 186.86868686868684,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 186.86868686868684,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 3555.328357142721,
+          "hits": [
+            1173.258357857098,
+            1173.258357857098,
+            1208.811641428525
+          ],
+          "damageType": "Physical",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 195.73933852963438,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 195.73933852963438,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 5591.9982725108575,
+          "hits": [
+            5591.9982725108575
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 227.27272727272725,
+          "actor": {
+            "kind": "enemy",
+            "index": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 227.27272727272725,
+          "actor": {
+            "kind": "enemy",
+            "index": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 228.3128770542958,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 228.3128770542958,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 37066.52658662918,
+          "hits": [
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 228.3128770542958,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 15988.713836251733,
+          "hits": [
+            2904.9341675381083,
+            1818.4778334093523,
+            1818.4778334093523,
+            2904.9341675381083,
+            1818.4778334093523,
+            1818.4778334093523,
+            2904.9341675381083
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 228.3128770542958,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 228.3128770542958,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 37066.52658662918,
+          "hits": [
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169,
+            5295.218083804169
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 235.15230085480653,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 235.15230085480653,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 3392.98777798078,
+          "hits": [
+            3392.98777798078
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 245.11930432523192,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 245.11930432523192,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 2517.43057667812,
+          "hits": [
+            830.7520903037796,
+            830.7520903037796,
+            855.9263960705609
+          ],
+          "damageType": "Physical",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 6169.4851853347,
+          "hits": [
+            6169.4851853347
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 23796.585714862416,
+          "hits": [
+            23796.585714862416
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 18696.66624147983,
+          "hits": [
+            3388.7176907179537,
+            2132.6282923314925,
+            2132.6282923314925,
+            3388.7176907179537,
+            2132.6282923314925,
+            2132.6282923314925,
+            3388.7176907179537
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 13034.129743480655,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 53399.64297359354,
+          "hits": [
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077,
+            7628.520424799077
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 0,
+          "hits": []
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 24224.491543813954,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 41569.90039172762,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 44075.89578772801,
+          "hits": [
+            6102.816339839263,
+            6102.816339839263,
+            6102.816339839263,
+            6102.816339839263,
+            6102.816339839263,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 246.65240506329116,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 100464.07058063665,
+          "hits": [
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            30139.221174191003
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 299.7839800957014,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 299.7839800957014,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 299.7839800957014,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 4751.869898759273,
+          "hits": [
+            4751.869898759273
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 299.7839800957014,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 299.7839800957014,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 299.7839800957014,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 100464.07058063665,
+          "hits": [
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            30139.221174191003
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "enemy",
+            "index": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 15105.705756230464,
+          "hits": [
+            2868.755717009908,
+            1624.8596513001849,
+            1624.8596513001849,
+            2868.755717009908,
+            1624.8596513001849,
+            1624.8596513001849,
+            2868.755717009908
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 303.030303030303,
+          "actor": {
+            "kind": "enemy",
+            "index": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 306.6432864493205,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 306.6432864493205,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 306.6432864493205,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 5222.844601341545,
+          "hits": [
+            5222.844601341545
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 322.9300557116512,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 322.9300557116512,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 322.9300557116512,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 322.9300557116512,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 322.9300557116512,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 322.9300557116512,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 44251.92384869652,
+          "hits": [
+            6321.703406956646,
+            6321.703406956646,
+            6321.703406956646,
+            6321.703406956646,
+            6321.703406956646,
+            6321.703406956646,
+            6321.703406956646
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 325.76632911392414,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 325.76632911392414,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "DOT_TICK",
+          "ability": "DOT",
+          "damage": 2313.1024911627906,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 325.76632911392414,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 8660.395914943256,
+          "damageType": "Ice"
+        },
+        {
+          "actionValue": 352.91555512811175,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 352.91555512811175,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 352.91555512811175,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 14482.366381645172,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 352.91555512811175,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 6236.8292421215465,
+          "hits": [
+            6236.8292421215465
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 357.76351617440235,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 357.76351617440235,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 0,
+          "hits": []
+        },
+        {
+          "actionValue": 366.6341678353499,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 366.6341678353499,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 6213.3314139009535,
+          "hits": [
+            6213.3314139009535
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 366.72253164556975,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 366.72253164556975,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "DOT_TICK",
+          "ability": "DOT",
+          "damage": 2891.3781139534885,
+          "damageType": "Fire"
+        },
+        {
+          "actionValue": 366.72253164556975,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 6928.316731954605,
+          "damageType": "Ice"
+        },
+        {
+          "actionValue": 378.78787878787887,
+          "actor": {
+            "kind": "enemy",
+            "index": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 378.78787878787887,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 19787.963942990664,
+          "hits": [
+            19787.963942990664
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 378.78787878787887,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 15335.579793333374,
+          "hits": [
+            2931.550213776395,
+            1635.232288001047,
+            1635.232288001047,
+            2931.550213776395,
+            1635.232288001047,
+            1635.232288001047,
+            2931.550213776395
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 378.78787878787887,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 378.78787878787887,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 41185.02954069909,
+          "hits": [
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 378.78787878787887,
+          "actor": {
+            "kind": "enemy",
+            "index": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 41185.02954069909,
+          "hits": [
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 41185.02954069909,
+          "hits": [
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 16957.025225431105,
+          "hits": [
+            3227.7046305978984,
+            1818.4778334093523,
+            1818.4778334093523,
+            3227.7046305978984,
+            1818.4778334093523,
+            1818.4778334093523,
+            3227.7046305978984
+          ],
+          "outOfTurn": true,
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 399.2077063600113,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 41185.02954069909,
+          "hits": [
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298,
+            5883.575648671298
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 406.047130160522,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 406.047130160522,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 0,
+          "hits": []
+        },
+        {
+          "actionValue": 407.6787341772153,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 407.6787341772153,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 6928.316731954605,
+          "damageType": "Ice"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 2797.145085197911,
+          "hits": [
+            923.0578781153107,
+            923.0578781153107,
+            951.0293289672899
+          ],
+          "damageType": "Physical",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 14482.366381645172,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 3
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 6854.983539260777,
+          "hits": [
+            6854.983539260777
+          ],
+          "damageType": "Imaginary",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BASIC",
+          "damage": 4751.869898759273,
+          "hits": [
+            4751.869898759273
+          ],
+          "damageType": "Ice",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "SKILL",
+          "damage": 47466.34930986093,
+          "hits": [
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848,
+            6780.907044265848
+          ],
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 0
+          },
+          "kind": "ABILITY",
+          "ability": "ULT",
+          "damage": 0,
+          "hits": [],
+          "outOfTurn": true
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 2
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 11034.183909824893,
+          "damageType": "Physical"
+        },
+        {
+          "actionValue": 416.0141336309474,
+          "actor": {
+            "kind": "ally",
+            "slot": 0,
+            "actorKind": "memo"
+          },
+          "kind": "ABILITY",
+          "ability": "FUA",
+          "damage": 100464.07058063665,
+          "hits": [
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            10046.407058063665,
+            30139.221174191003
+          ],
+          "outOfTurn": true,
+          "damageType": "Fire",
+          "targetEnemyIndex": 1
+        },
+        {
+          "actionValue": 448.6349367088609,
+          "actor": {
+            "kind": "enemy",
+            "index": 1
+          },
+          "kind": "TURN_START"
+        },
+        {
+          "actionValue": 448.6349367088609,
+          "actor": {
+            "kind": "ally",
+            "slot": 1
+          },
+          "kind": "ABILITY",
+          "ability": "BREAK",
+          "damage": 6928.316731954605,
+          "damageType": "Ice"
+        }
+      ]
+    }
+  },
+  "expectedDrift": [
+    "slot0 (Topaz): our sim folds Numby memo damage into primary FUA. Reference splits primary (~374k) from memo (~1.12M). Per-slot combined totals match within ~10%.",
+    "slot1 (Ruan Mei): missing ~119k BREAK from her break-zone passive (GenericAbilityStart events on enemy weakness recovery — not yet modeled in scheduler).",
+    "slot2 (Robin): missing ~430k Additional damage from Flowing Nightglow LC (per-teammate-attack proc not wired as a FUA trigger in our characterData).",
+    "slot3 (Aventurine): systematically low across BASIC / FUA / ULT (~70-82% under). Likely buff-propagation gap (Topaz Ashblazing 4pc, Robin Concerto, Ruan Mei Overtone) not all reaching teammates correctly.",
+    "slot0 BREAK over-attributed (+178%) — single-gauge break model credits the breaking attacker; reference spreads breaks across the attackers per enemy. Aggregate BREAK totals are closer (~177k ours vs ~174k ref, +2%)."
+  ],
+  "tolerance": {
+    "totalDamage": 0.1,
+    "perActorTotal": 1,
+    "perAbility": 5
+  }
+}
