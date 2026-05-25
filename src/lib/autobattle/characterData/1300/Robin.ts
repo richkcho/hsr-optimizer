@@ -38,6 +38,16 @@ export const RobinData: CharacterData = {
     ],
   },
   clockPausedByBuff: { buffId: 'Robin.concerto', actOnResume: true },
+  // Talent "Tonal Resonance": "after allies attack enemy targets, Robin additionally
+  // regenerates 2 Energy for herself" (E0 value; E2+ raises to 3 — not modeled, no
+  // eidolon-aware behavior in characterData layer). Reference impl fires on every
+  // non-enemy AttackDMGEnd, which includes Robin's own attacks too.
+  energyPassiveOnAnyAttack: {
+    [AbilityKind.BASIC]: 2,
+    [AbilityKind.SKILL]: 2,
+    [AbilityKind.ULT]: 2,
+    [AbilityKind.FUA]: 2,
+  },
   fuaTriggers: [
     {
       id: 'robin.concertoAdditional',

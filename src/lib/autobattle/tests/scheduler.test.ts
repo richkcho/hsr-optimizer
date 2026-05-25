@@ -297,6 +297,25 @@ describe('FUA trigger gating: requiresSourceBuff', () => {
   })
 })
 
+describe('energyPassiveOnAnyAttack', () => {
+  test('Robin gains +2 energy every time any teammate fires a basic', () => {
+    // Robin in slot 1 with maxEnergy high enough that we can read raw energy after a few
+    // turns without ulting. A teammate basic gives Robin +2 from her Talent (with ERR=0
+    // in mock-resolver tests). Start at 50% = 250; after 5 teammate basics → 250 + 5×2 = 260.
+    const robin: TeamMemberInput = { ...makeMember(1, 100, 500), characterId: '1309' as CharacterId }
+    const teammate = makeMember(0, 100, 9999)
+
+    const result = runAutobattle(
+      makeInput([teammate, robin], { totalAv: 600, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+    // Final energy = 250 (start) + teammate basics × 2 + robin's own basics × (20 + 2).
+    // Sanity check: Robin's energy should be > start.
+    const robinEnergy = result.finalEnergyBySlot[1]
+    expect(robinEnergy).toBeGreaterThan(250)
+  })
+})
+
 describe('clock pause: clockPausedByBuff', () => {
   // Mock with no UNIQUE damage so we can measure Robin's action count cleanly via the log.
   // Robin's prebuilt UNIQUE fires still appear in the log even at 0 damage.

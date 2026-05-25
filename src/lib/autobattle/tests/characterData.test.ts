@@ -69,6 +69,16 @@ describe('characterData registry', () => {
     expect(data.clockPausedByBuff?.actOnResume).toBe(true)
   })
 
+  test('Robin: Talent grants +2 energy per non-enemy attack (any kind)', () => {
+    const data = resolveCharacterData('1309' as CharacterId)
+    expect(data.energyPassiveOnAnyAttack?.[AbilityKind.BASIC]).toBe(2)
+    expect(data.energyPassiveOnAnyAttack?.[AbilityKind.SKILL]).toBe(2)
+    expect(data.energyPassiveOnAnyAttack?.[AbilityKind.ULT]).toBe(2)
+    expect(data.energyPassiveOnAnyAttack?.[AbilityKind.FUA]).toBe(2)
+    // Additional damage doesn't count as an attack.
+    expect(data.energyPassiveOnAnyAttack?.[AbilityKind.UNIQUE]).toBeUndefined()
+  })
+
   test('Robin: Concerto Additional trigger fires UNIQUE while Concerto buff is active', () => {
     const data = resolveCharacterData('1309' as CharacterId)
     expect(data.fuaTriggers?.length).toBe(1)

@@ -322,6 +322,14 @@ export interface CharacterData {
   // so the unit acts immediately (HSR Concerto semantics).
   clockPausedByBuff?: { buffId: string; actOnResume?: boolean }
 
+  // Passive energy this character gains whenever ANY non-enemy actor fires the given
+  // attack ability kind (including their own actions). Models talents like Robin's
+  // "Tonal Resonance" — "after allies attack enemy targets, Robin additionally
+  // regenerates N Energy for herself" — which fires per-attack regardless of source.
+  // Subject to standard ERR scaling via changeEnergy. Limited to attack kinds
+  // (BASIC/SKILL/ULT/FUA); DOT, BREAK, UNIQUE/Additional don't count as attacks.
+  energyPassiveOnAnyAttack?: Partial<Record<AbilityKind, number>>
+
   // v1 approximation flags for mechanics we don't fully simulate.
   v1Approx?: {
     // For Aventurine/Clara/Fu Xuan/March 7th: enemies don't attack, so we

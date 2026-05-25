@@ -261,6 +261,17 @@ function executeAbility(
     }
   }
 
+  // Passive energy on any non-enemy attack (Robin's Talent: +2 energy per ally attack,
+  // including her own). Loops over every slot — both source and others — because the
+  // mechanic fires regardless of who attacked. ERR scaling is applied by changeEnergy.
+  for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
+    const m = state.members[slot]
+    const passive = m?.characterData.energyPassiveOnAnyAttack?.[chosen.kind]
+    if (passive && m) {
+      changeEnergy(state.resources, m, passive)
+    }
+  }
+
   appendLog(state, {
     elapsedAv: state.elapsedAv,
     deltaAv,
