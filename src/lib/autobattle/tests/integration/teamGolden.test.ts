@@ -187,20 +187,21 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after enabling break-damage support: scheduler now decrements
-// an aggregate enemy toughness gauge (default 100) on every ability fire's toughness damage,
-// and credits the breaking attacker with weakness-break damage. Team total moves +1.17%
-// (+213k absolute), all attributed to new BREAK buckets that didn't exist before. FUA/ULT
-// numbers are unchanged since those don't involve break.
+// Golden refrozen on 2026-05-25 after enabling Robin's Concerto Additional damage trigger.
+// Robin's UNIQUE bucket is new: ~776k credited via the requiresSourceBuff-gated FUA-trigger
+// path, fired by teammate basics during her Concerto window. Robin total moves from 630k →
+// 1407k (+775k), and grand total +4.2%. All other actors' buckets are unchanged because the
+// new UNIQUE fire path doesn't recursively trigger teammates' FUAs.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy its
 // console output back into this block.
 const GOLDEN = {
-  grandTotal: 18415256,
+  grandTotal: 19191131,
   feixiaoTotal: 16221939,
   feixiaoFua: 4137666,
   feixiaoUlt: 8272178,
   feixiaoBreak: 177609,
-  robinTotal: 630937,
+  robinTotal: 1406812,
+  robinUnique: 775875,
   sparkleTotal: 338956,
   aventurineTotal: 1223425,
 }
@@ -243,5 +244,10 @@ describe('autobattle team golden', () => {
     approxEq(feixiao.ULT ?? 0, GOLDEN.feixiaoUlt)
     approxEq(feixiao.BREAK ?? 0, GOLDEN.feixiaoBreak)
     expect(feixiao.SKILL ?? 0).toBeGreaterThan(0)
+
+    // Robin's Concerto Additional fires via the requiresSourceBuff-gated trigger on teammate
+    // attacks during her Concerto window.
+    const robin = result.ledger.byActorBySource['1:primary']!
+    approxEq(robin.UNIQUE ?? 0, GOLDEN.robinUnique)
   })
 })

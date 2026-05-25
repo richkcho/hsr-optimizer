@@ -423,6 +423,7 @@ function fireFuaTriggers(state: BattleState, source: ActorId, kind: AbilityKind,
 
     for (const trigger of member.characterData.fuaTriggers) {
       if (!triggerMatches(trigger, source, kind)) continue
+      if (trigger.requiresSourceBuff && !hasActiveBuff(state, trigger.requiresSourceBuff)) continue
 
       // Increment counter; fire when reaching everyN.
       const counters = state.resources.fuaTriggerCounters[slot] ??= {}

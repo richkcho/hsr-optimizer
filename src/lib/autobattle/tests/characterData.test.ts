@@ -52,6 +52,25 @@ describe('characterData registry', () => {
     expect(data.grantsEnergyOnAction?.[AbilityKind.ULT]).toBeUndefined()
   })
 
+  test('Robin: ult applies Concerto self-marker buff (2 turnsOnSource)', () => {
+    const data = resolveCharacterData('1309' as CharacterId)
+    const buffGrants = data.grantsBuffsOnAction?.[AbilityKind.ULT]
+    expect(buffGrants?.length).toBe(1)
+    expect(buffGrants?.[0].target).toBe('self')
+    expect(buffGrants?.[0].buff.id).toBe('Robin.concerto')
+    expect(buffGrants?.[0].buff.remaining).toBe(2)
+    expect(buffGrants?.[0].buff.mode).toBe('turnsOnSource')
+  })
+
+  test('Robin: Concerto Additional trigger fires UNIQUE while Concerto buff is active', () => {
+    const data = resolveCharacterData('1309' as CharacterId)
+    expect(data.fuaTriggers?.length).toBe(1)
+    const trigger = data.fuaTriggers![0]
+    expect(trigger.on).toBe('teammateAttack')
+    expect(trigger.selector?.abilityKind).toBe(AbilityKind.UNIQUE)
+    expect(trigger.requiresSourceBuff).toBe('Robin.concerto')
+  })
+
   test('Sunday: skill advances single ally 100% AV; ult grants energy', () => {
     const data = resolveCharacterData('1313' as CharacterId)
     const advanceGrant = data.grantsAdvanceOnAction?.[AbilityKind.SKILL]

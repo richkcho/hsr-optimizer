@@ -247,7 +247,13 @@ export interface FuaTrigger {
   on: FuaTriggerEvent
   everyN?: number              // e.g. Feixiao: 2 ally attacks
   conditionMark?: string       // e.g. Topaz: 'numbyMark'
-  // Which of this character's FUA hits fires when triggered (in case actionDefinition has variants)
+  // Active-buff id that must be present on the trigger owner for the trigger to fire. The
+  // buff is typically a self-marker applied by the owner's ult (Robin's 'Robin.concerto'),
+  // letting non-FUA triggers like Robin's Concerto Additional gate by a kit state the sim
+  // doesn't otherwise track. Checked by id only — namespaced buff ids keep this collision-free.
+  requiresSourceBuff?: string
+  // Which of this character's hits fires when triggered. The scheduler executes the trigger
+  // as this AbilityKind (defaults to FUA for back-compat with classic FUA chargers).
   selector?: { abilityKind: AbilityKind; variant?: string }
   // Stable id used to key the counter in ResourceState.fuaTriggerCounters
   id: string

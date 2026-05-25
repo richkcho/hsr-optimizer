@@ -211,3 +211,88 @@ describe('break damage', () => {
     expect(firstBreakIdx).toBe(firstSkillIdx + 1)
   })
 })
+
+describe('FUA trigger gating: requiresSourceBuff', () => {
+  // Robin's Concerto Additional fires UNIQUE on teammate attacks, but only while the
+  // 'Robin.concerto' self-marker buff is active. The buff is applied by her ULT
+  // (grantsBuffsOnAction[ULT]) and lasts 2 of her own primary turns (turnsOnSource).
+  const mockWithUnique = () =>
+    createMockDamageResolver({
+      BASIC: 100,
+      SKILL: 250,
+      ULT: 0,         // Robin's ult is a non-damaging action in her actionDeclaration
+      FUA: 150,
+      UNIQUE: 12000,  // distinct value so we can recognize UNIQUE damage in the ledger
+    } as Partial<Record<AbilityKind, number>>)
+
+  test('UNIQUE does not fire before Robin ults (Concerto not active)', () => {
+    // Robin in slot 1, teammate in slot 0. Robin's maxEnergy is huge so she never ults in
+    // the window — Concerto buff is never applied, so no UNIQUE should fire from Robin.
+    const robin: TeamMemberInput = { ...makeMember(1, 100, 9999), characterId: '1309' as CharacterId }
+    const teammate = makeMember(0, 100, 9999)
+
+    const result = runAutobattle(
+      makeInput([teammate, robin], { totalAv: 500, enemySpd: 10 }),
+      { resolver: mockWithUnique() },
+    )
+    const robinUnique = result.ledger.byActorBySource['1:primary']?.UNIQUE ?? 0
+    expect(robinUnique).toBe(0)
+  })
+
+  test('UNIQUE fires on teammate attacks once Concerto is active', () => {
+    // Low maxEnergy so Robin ults after the first basic. After her ult, Concerto activates
+    // for 2 of her primary turns. Subsequent teammate attacks should credit UNIQUE to Robin.
+    const robin: TeamMemberInput = { ...makeMember(1, 100, 20), characterId: '1309' as CharacterId }
+    // Fast teammate so several attacks land while Concerto is active.
+    const teammate = makeMember(0, 300, 9999)
+
+    const result = runAutobattle(
+      makeInput([teammate, robin], { totalAv: 800, enemySpd: 10 }),
+      { resolver: mockWithUnique() },
+    )
+    const robinUnique = result.ledger.byActorBySource['1:primary']?.UNIQUE ?? 0
+    // Each UNIQUE fire credits 12000 (mock). At minimum we want at least one fire.
+    expect(robinUnique).toBeGreaterThan(0)
+    expect(robinUnique % 12000).toBe(0)
+  })
+
+  test('UNIQUE only fires during Concerto windows, not on every teammate attack', () => {
+    // Robin with a large maxEnergy that lets her ult exactly once mid-battle, after which
+    // Concerto's 2-turn window expires and no more ULTs follow. Subsequent teammate attacks
+    // should NOT credit UNIQUE — proving requiresSourceBuff is actually gating.
+    const robin: TeamMemberInput = { ...makeMember(1, 100, 100), characterId: '1309' as CharacterId }
+    const teammate = makeMember(0, 100, 9999)
+
+    const result = runAutobattle(
+      makeInput([teammate, robin], { totalAv: 1500, enemySpd: 10 }),
+      { resolver: mockWithUnique() },
+    )
+
+    const teammateAttacks = result.log.filter(
+      (e) => e.kind === AbilityKind.BASIC || e.kind === AbilityKind.SKILL,
+    ).filter((e) => `${e.actor.slot}` === '0').length
+    const uniqueFires = (result.ledger.byActorBySource['1:primary']?.UNIQUE ?? 0) / 12000
+    // Strict bound: each Robin ult opens at most one ~2-Robin-turn window. With Robin SPD 100
+    // and ~5 Robin basics to ult (maxEnergy=100, 20/basic, +5 refund), she ults ~once across
+    // 1500 AV. That window captures only a fraction of teammate attacks.
+    expect(uniqueFires).toBeGreaterThan(0)
+    expect(uniqueFires).toBeLessThan(teammateAttacks)
+  })
+
+  test('classic FUA triggers (Feixiao) still fire as FUA — no regression from gating', () => {
+    // Feixiao has no requiresSourceBuff and fires every 2 ally attacks. Confirm the FUA
+    // ledger bucket is populated as before.
+    const feixiao: TeamMemberInput = { ...makeMember(1, 100, 9999), characterId: '1220' as CharacterId }
+    const teammate = makeMember(0, 100, 9999)
+
+    const result = runAutobattle(
+      makeInput([teammate, feixiao], { totalAv: 1500, enemySpd: 10 }),
+      { resolver: mockWithUnique() },
+    )
+    const feixiaoFua = result.ledger.byActorBySource['1:primary']?.FUA ?? 0
+    expect(feixiaoFua).toBeGreaterThan(0)
+    // Feixiao should not have any UNIQUE credits — her trigger fires as FUA only.
+    const feixiaoUnique = result.ledger.byActorBySource['1:primary']?.UNIQUE ?? 0
+    expect(feixiaoUnique).toBe(0)
+  })
+})
