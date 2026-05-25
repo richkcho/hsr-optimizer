@@ -1,14 +1,20 @@
 // @vitest-environment jsdom
 /* eslint-disable no-console */
 /// <reference types="node" />
-import { existsSync, readFileSync, readdirSync } from 'fs'
-import { dirname, resolve } from 'path'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs'
+import { basename, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
+import type {
+  BattleRecordActorOutcome,
+  BattleRecordOutcome,
+  ToleranceBands,
+} from 'lib/autobattle/battleRecord'
+import { toBattleRecordOutcome } from 'lib/autobattle/battleRecordAdapter'
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
 import type {
+  ActorKind,
   AutobattleInput,
-  AutobattleResult,
   SlotIndex,
   TeamMemberInput,
 } from 'lib/autobattle/types'
@@ -21,6 +27,7 @@ import {
   type SubStats,
 } from 'lib/constants/constants'
 import { BasicStatToKey } from 'lib/optimization/basicStatsArray'
+import type { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 import { StatCalculator } from 'lib/relics/statCalculator'
 import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
 import { Metadata } from 'lib/state/metadataInitializer'
@@ -30,23 +37,21 @@ import type { LightConeId } from 'types/lightCone'
 import { describe, expect, test } from 'vitest'
 
 // ---------------------------------------------------------------------------
-// Where the goldens live. Gitignored — only present on machines that ran the
-// capture workflow in .tmp/ext/goldens/CAPTURE_GUIDE.md. When the directory is
-// absent the whole describe block skips, so the test is a no-op for fresh clones.
+// Where the goldens live (checked in) and where our-sim outcomes get dumped.
 // ---------------------------------------------------------------------------
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const GOLDEN_DIR = resolve(HERE, '../../../../../.tmp/ext/goldens')
+const GOLDEN_DIR = resolve(HERE, 'goldens')
+const OUTCOME_DIR = resolve(HERE, '../../../../../.tmp/our-outcomes')
 
-// Tolerance bands (relative deltas). Override per-golden via `tolerance` in the JSON.
-const DEFAULT_TOLERANCE = {
-  totalDamage: 0.15,     // ±15% on team total
-  perActorTotal: 0.20,   // ±20% per actor total
-  perAbility: 0.30,      // ±30% per ability bucket
+const DEFAULT_TOLERANCE: Required<ToleranceBands> = {
+  totalDamage: 0.15,
+  perActorTotal: 0.20,
+  perAbility: 0.30,
 }
 
 // ---------------------------------------------------------------------------
-// JSON golden shape
+// Golden file format. Mirrors README.md in this directory.
 // ---------------------------------------------------------------------------
 
 interface GoldenMember {
@@ -63,7 +68,12 @@ interface GoldenMember {
   relicSet1: keyof typeof Sets
   relicSet2: keyof typeof Sets
   ornamentSet: keyof typeof Sets
-  mains: { body: keyof typeof Stats; feet: keyof typeof Stats; planarSphere: keyof typeof Stats; linkRope: keyof typeof Stats }
+  mains: {
+    body: keyof typeof Stats
+    feet: keyof typeof Stats
+    planarSphere: keyof typeof Stats
+    linkRope: keyof typeof Stats
+  }
 }
 
 interface GoldenScenario {
@@ -73,25 +83,19 @@ interface GoldenScenario {
   totalAv: number
 }
 
-interface GoldenReference {
-  captured: boolean
-  captureDate?: string | null
-  captureNotes?: string | null
-  totalDamage?: number | null
-  byActor: Record<string, { BASIC?: number | null; SKILL?: number | null; ULT?: number | null; FUA?: number | null; DOT?: number | null; total?: number | null }>
-}
-
 interface GoldenFile {
   name: string
   description?: string
+  captureDate?: string
+  captureNotes?: string
   team: GoldenMember[]
   scenario: GoldenScenario
-  reference: GoldenReference
-  tolerance?: Partial<typeof DEFAULT_TOLERANCE>
+  reference: { outcome: BattleRecordOutcome }
+  tolerance?: Partial<ToleranceBands>
 }
 
 // ---------------------------------------------------------------------------
-// Input builder (mirror of teamGolden.test.ts's MemberFixture helpers, just driven by JSON)
+// Input builder
 // ---------------------------------------------------------------------------
 
 const STANDARD_ROLLS: Partial<Record<SubStats, number>> = {
@@ -157,7 +161,7 @@ function buildInput(golden: GoldenFile): AutobattleInput {
 }
 
 // ---------------------------------------------------------------------------
-// Diff + reporting
+// Diff — operates on BattleRecord.outcome on both sides.
 // ---------------------------------------------------------------------------
 
 interface Delta {
@@ -169,37 +173,51 @@ interface Delta {
   withinTolerance: boolean
 }
 
-function diff(golden: GoldenFile, result: AutobattleResult): Delta[] {
+function mkDelta(label: string, ours: number, ref: number, tolerance: number): Delta {
+  const pct = ref === 0 ? (ours === 0 ? 0 : Number.POSITIVE_INFINITY) : (ours - ref) / ref
+  return { label, ours, ref, pct, tolerance, withinTolerance: Math.abs(pct) <= tolerance }
+}
+
+function actorBucketKey(b: BattleRecordActorOutcome): string {
+  return `slot${b.slot}:${b.actorKind ?? 'primary'}`
+}
+
+function indexByActor(outcome: BattleRecordOutcome): Map<string, BattleRecordActorOutcome> {
+  const m = new Map<string, BattleRecordActorOutcome>()
+  for (const a of outcome.byActor) m.set(actorBucketKey(a), a)
+  return m
+}
+
+function diff(golden: GoldenFile, ours: BattleRecordOutcome): Delta[] {
   const tol = { ...DEFAULT_TOLERANCE, ...golden.tolerance }
+  const ref = golden.reference.outcome
   const out: Delta[] = []
-  const refTotal = golden.reference.totalDamage ?? 0
-  const ourTotal = result.ledger.grandTotal
 
-  out.push(mkDelta('TEAM total', ourTotal, refTotal, tol.totalDamage))
+  out.push(mkDelta('TEAM total', ours.totalDamage, ref.totalDamage, tol.totalDamage))
 
-  for (const m of golden.team) {
-    const refForSlot = golden.reference.byActor[String(m.slot)] ?? {}
-    const actorKey = `${m.slot}:primary`
-    const ours = result.ledger.byActorBySource[actorKey] ?? {}
-    const ourTotalForSlot = result.ledger.totalsByActor[actorKey] ?? 0
-    const refTotalForSlot = refForSlot.total ?? 0
+  const ourMap = indexByActor(ours)
+  const refMap = indexByActor(ref)
+  const allKeys = new Set<string>([...ourMap.keys(), ...refMap.keys()])
 
-    out.push(mkDelta(`slot ${m.slot} (${m.referenceName}) total`, ourTotalForSlot, refTotalForSlot, tol.perActorTotal))
+  for (const key of [...allKeys].sort()) {
+    const a = ourMap.get(key)
+    const r = refMap.get(key)
+    out.push(mkDelta(`${key} total`, a?.totalDamage ?? 0, r?.totalDamage ?? 0, tol.perActorTotal))
 
-    for (const kind of ['BASIC', 'SKILL', 'ULT', 'FUA', 'DOT'] as const) {
-      const refVal = refForSlot[kind]
-      if (refVal == null) continue
-      const ourVal = (ours as Record<string, number | undefined>)[kind] ?? 0
-      out.push(mkDelta(`slot ${m.slot} (${m.referenceName}) ${kind}`, ourVal, refVal, tol.perAbility))
+    const abilities = new Set<string>([
+      ...Object.keys(a?.bySkillType ?? {}),
+      ...Object.keys(r?.bySkillType ?? {}),
+    ])
+    for (const ability of [...abilities].sort()) {
+      const ak = ability as AbilityKind
+      const ourVal = a?.bySkillType?.[ak] ?? 0
+      const refVal = r?.bySkillType?.[ak] ?? 0
+      if (ourVal === 0 && refVal === 0) continue
+      out.push(mkDelta(`${key} ${ability}`, ourVal, refVal, tol.perAbility))
     }
   }
 
   return out
-}
-
-function mkDelta(label: string, ours: number, ref: number, tolerance: number): Delta {
-  const pct = ref === 0 ? (ours === 0 ? 0 : Number.POSITIVE_INFINITY) : (ours - ref) / ref
-  return { label, ours, ref, pct, tolerance, withinTolerance: Math.abs(pct) <= tolerance }
 }
 
 function formatDeltas(deltas: Delta[]): string {
@@ -207,67 +225,56 @@ function formatDeltas(deltas: Delta[]): string {
   for (const d of deltas) {
     const pctStr = isFinite(d.pct) ? `${(d.pct * 100).toFixed(1)}%` : '∞'
     const flag = d.withinTolerance ? '✓' : '✗'
-    lines.push(`  ${flag} ${d.label.padEnd(40)}  ours=${d.ours.toFixed(0).padStart(12)}  ref=${d.ref.toFixed(0).padStart(12)}  Δ=${pctStr.padStart(8)}  (tol ±${(d.tolerance * 100).toFixed(0)}%)`)
+    lines.push(`  ${flag} ${d.label.padEnd(45)}  ours=${d.ours.toFixed(0).padStart(12)}  ref=${d.ref.toFixed(0).padStart(12)}  Δ=${pctStr.padStart(8)}  (tol ±${(d.tolerance * 100).toFixed(0)}%)`)
   }
   return lines.join('\n')
 }
+
+// Annotate unused types as referenced — `ActorKind` will be needed once we add
+// goldens that target memo actor outcomes.
+type _UseActorKind = ActorKind
 
 // ---------------------------------------------------------------------------
 // Test suite
 // ---------------------------------------------------------------------------
 
-const haveGoldensDir = existsSync(GOLDEN_DIR)
-const goldenFiles = haveGoldensDir
+const goldenFiles = existsSync(GOLDEN_DIR)
   ? readdirSync(GOLDEN_DIR).filter((f) => f.endsWith('.json'))
   : []
 
-if (haveGoldensDir && goldenFiles.length > 0) {
+if (goldenFiles.length > 0) {
   Metadata.initialize()
 
-  describe('cross-check against external goldens', () => {
+  describe('cross-check against goldens', () => {
     for (const file of goldenFiles) {
       test(file, () => {
         const golden = JSON.parse(readFileSync(resolve(GOLDEN_DIR, file), 'utf8')) as GoldenFile
+        const input = buildInput(golden)
+        const result = runAutobattle(input, { buildResolvers: true })
 
-        if (!golden.reference.captured) {
-          console.log(`  ⏭  ${file}: reference numbers not yet captured (see .tmp/ext/goldens/CAPTURE_GUIDE.md)`)
-          return
-        }
+        // Dump our-sim outcome for inspection / external diffs.
+        const oursOutcome = toBattleRecordOutcome(result, { team: input.team })
+        mkdirSync(OUTCOME_DIR, { recursive: true })
+        const outPath = resolve(OUTCOME_DIR, `${basename(file, '.json')}.our-outcome.json`)
+        writeFileSync(outPath, JSON.stringify(oursOutcome, null, 2))
+        console.log(`  📄 ${file}: dumped our-sim outcome → ${outPath}`)
 
-        const result = runAutobattle(buildInput(golden), { buildResolvers: true })
-        const deltas = diff(golden, result)
-
+        const deltas = diff(golden, oursOutcome)
         console.log(`\n${file}:`)
         console.log(formatDeltas(deltas))
 
         const failures = deltas.filter((d) => !d.withinTolerance)
         if (failures.length > 0) {
-          const summary = failures.map((d) => `  ${d.label}: Δ=${(d.pct * 100).toFixed(1)}% > ±${(d.tolerance * 100).toFixed(0)}%`).join('\n')
+          const summary = failures
+            .map((d) => `  ${d.label}: Δ=${(d.pct * 100).toFixed(1)}% > ±${(d.tolerance * 100).toFixed(0)}%`)
+            .join('\n')
           expect.fail(`${failures.length} delta(s) outside tolerance:\n${summary}`)
         }
       })
     }
-
-    test.skip('dump our final stats for capture (skip by default)', () => {
-      for (const file of goldenFiles) {
-        const golden = JSON.parse(readFileSync(resolve(GOLDEN_DIR, file), 'utf8')) as GoldenFile
-        const result = runAutobattle(buildInput(golden), { buildResolvers: true })
-        console.log(`\n=== ${file} — our sim output ===`)
-        console.log(`grandTotal: ${result.ledger.grandTotal.toFixed(0)}`)
-        for (const m of golden.team) {
-          const actorKey = `${m.slot}:primary`
-          const total = result.ledger.totalsByActor[actorKey] ?? 0
-          const byKind = result.ledger.byActorBySource[actorKey] ?? {}
-          console.log(`slot ${m.slot} (${m.referenceName}): total=${total.toFixed(0)}`)
-          for (const [kind, val] of Object.entries(byKind)) {
-            console.log(`    ${kind}: ${(val as number).toFixed(0)}`)
-          }
-        }
-      }
-    })
   })
 } else {
-  describe.skip('cross-check against external goldens (no goldens directory present)', () => {
+  describe.skip('cross-check against goldens (none present)', () => {
     test('placeholder', () => {})
   })
 }

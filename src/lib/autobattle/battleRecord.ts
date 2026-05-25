@@ -27,7 +27,7 @@ import type {
   SubStats,
 } from 'lib/constants/constants'
 import type { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
-import type { SlotIndex } from 'lib/autobattle/types'
+import type { ActorKind, SlotIndex } from 'lib/autobattle/types'
 import type { CharacterId, Eidolon } from 'types/character'
 import type { LightConeId } from 'types/lightCone'
 
@@ -201,7 +201,18 @@ export interface BattleRecordOutcome {
 
 export interface BattleRecordActorOutcome {
   slot: SlotIndex
-  characterId: CharacterId
+  /**
+   * Which actor on this slot — primary (the character) or memo/summon. Absent
+   * → 'primary'. A team member with a memospsrite produces two outcomes for
+   * the same slot, distinguished by this field.
+   */
+  actorKind?: ActorKind
+  /**
+   * Owning character. Optional because producers like the reference converter
+   * don't necessarily know the CharacterId for each properName; consumers can
+   * cross-reference against the input team config if they need it.
+   */
+  characterId?: CharacterId
   totalDamage: number
   /** Damage by AbilityKind. BASIC, SKILL, ULT, FUA, DOT, BREAK. */
   bySkillType: Partial<Record<AbilityKind, number>>
@@ -212,7 +223,17 @@ export interface BattleRecordActorOutcome {
 }
 
 export type BattleRecordActorRef =
-  | { kind: 'ally'; slot: SlotIndex }
+  | {
+    kind: 'ally'
+    slot: SlotIndex
+    /**
+     * Which actor on this slot fired. Absent → 'primary' (the character themselves).
+     * Memosprites and summons (Numby, Fuyuan, Mem, etc.) take their own turns and
+     * deal their own damage; tagging the actor lets the validator distinguish
+     * "Topaz's FUA" from "Numby's basic" even though both attribute to slot 0.
+     */
+    actorKind?: ActorKind
+  }
   | { kind: 'enemy'; index: number }
 
 /**
@@ -246,6 +267,20 @@ export interface BattleRecordEvent {
 
   /** Which enemy received the damage. Useful for AoE / mark validation. */
   targetEnemyIndex?: number
+
+  /**
+   * Per-hit breakdown for multi-hit abilities (Sparkle skill = 12 hits, etc.).
+   * When present, `sum(hits)` should ≈ `damage`, which remains authoritative for diffing.
+   * Optional — producers fill when available; consumers may ignore.
+   */
+  hits?: number[]
+
+  /**
+   * Event fires outside the natural AV-driven turn order — out-of-turn ult, FUA trigger,
+   * immediate extra turn (Sparkle's gift). Lets validators group consecutive events into
+   * the correct logical turn when diffing against another sim's timeline.
+   */
+  outOfTurn?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
