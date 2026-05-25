@@ -129,13 +129,13 @@
           "bySkillType": {
             "SKILL": 0,
             "ULT": 0,
-            "FUA": 430471.0997820434,
+            "UNIQUE": 430471.0997820434,
             "BASIC": 8869.904019018752
           },
           "skillUseCount": {
             "SKILL": 2,
             "ULT": 3,
-            "FUA": 36,
+            "UNIQUE": 36,
             "BASIC": 3
           },
           "turnsTaken": 5
@@ -360,7 +360,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -401,7 +401,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -455,7 +455,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -490,7 +490,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -533,7 +533,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -568,7 +568,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -611,7 +611,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -675,7 +675,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 14482.366381645172,
           "damageType": "Physical"
         },
@@ -736,7 +736,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -771,7 +771,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -851,7 +851,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -884,7 +884,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -920,7 +920,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -962,7 +962,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1003,7 +1003,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1045,7 +1045,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1090,7 +1090,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 9930.765518842403,
           "damageType": "Physical"
         },
@@ -1144,7 +1144,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -1401,7 +1401,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -1427,7 +1427,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -1454,7 +1454,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -1496,7 +1496,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 13034.129743480655,
           "damageType": "Physical"
         },
@@ -1579,7 +1579,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1632,7 +1632,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1675,7 +1675,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1710,7 +1710,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1753,7 +1753,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1795,7 +1795,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1845,7 +1845,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1879,7 +1879,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -1920,7 +1920,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -2004,7 +2004,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 14482.366381645172,
           "damageType": "Physical"
         },
@@ -2386,7 +2386,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 14482.366381645172,
           "damageType": "Physical"
         },
@@ -2420,7 +2420,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -2454,7 +2454,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -2507,7 +2507,7 @@
             "slot": 2
           },
           "kind": "ABILITY",
-          "ability": "FUA",
+          "ability": "UNIQUE",
           "damage": 11034.183909824893,
           "damageType": "Physical"
         },
@@ -2560,7 +2560,7 @@
   "expectedDrift": [
     "slot0 (Topaz): our sim folds Numby memo damage into primary FUA. Reference splits primary (~374k) from memo (~1.12M). Per-slot combined totals match within ~10%.",
     "slot1 (Ruan Mei): missing ~119k BREAK from her break-zone passive (GenericAbilityStart events on enemy weakness recovery — not yet modeled in scheduler).",
-    "slot2 (Robin): missing ~430k Additional damage from Flowing Nightglow LC (per-teammate-attack proc not wired as a FUA trigger in our characterData).",
+    "slot2 (Robin): missing ~430k UNIQUE damage from Flowing Nightglow LC (per-teammate-attack Additional proc not yet triggered on teammate actions; see issue #3).",
     "slot3 (Aventurine): systematically low across BASIC / FUA / ULT (~70-82% under). Likely buff-propagation gap (Topaz Ashblazing 4pc, Robin Concerto, Ruan Mei Overtone) not all reaching teammates correctly.",
     "slot0 BREAK over-attributed (+178%) — single-gauge break model credits the breaking attacker; reference spreads breaks across the attackers per enemy. Aggregate BREAK totals are closer (~177k ours vs ~174k ref, +2%)."
   ],
