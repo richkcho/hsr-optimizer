@@ -6,6 +6,7 @@ import { YunliData } from 'lib/autobattle/characterData/1200/Yunli'
 import { AcheronData } from 'lib/autobattle/characterData/1300/Acheron'
 import { AventurineData } from 'lib/autobattle/characterData/1300/Aventurine'
 import { RobinData } from 'lib/autobattle/characterData/1300/Robin'
+import { RuanMeiData } from 'lib/autobattle/characterData/1300/RuanMei'
 import { SparkleData } from 'lib/autobattle/characterData/1300/Sparkle'
 import { SundayData } from 'lib/autobattle/characterData/1300/Sunday'
 import { AnaxaData } from 'lib/autobattle/characterData/1400/Anaxa'
@@ -27,6 +28,7 @@ const overrides: Partial<Record<CharacterId, Partial<CharacterData>>> = {
   '1220': FeixiaoData,
   '1221': YunliData,
   '1222': LingshaData,
+  '1303': RuanMeiData,
   '1304': AventurineData,
   '1306': SparkleData,
   '1308': AcheronData,

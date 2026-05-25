@@ -8,6 +8,7 @@ import { YunliTendency } from 'lib/autobattle/tendencies/1200/Yunli'
 import { AcheronTendency } from 'lib/autobattle/tendencies/1300/Acheron'
 import { AventurineTendency } from 'lib/autobattle/tendencies/1300/Aventurine'
 import { RobinTendency } from 'lib/autobattle/tendencies/1300/Robin'
+import { RuanMeiTendency } from 'lib/autobattle/tendencies/1300/RuanMei'
 import { SparkleTendency } from 'lib/autobattle/tendencies/1300/Sparkle'
 import { SundayTendency } from 'lib/autobattle/tendencies/1300/Sunday'
 import { AnaxaTendency } from 'lib/autobattle/tendencies/1400/Anaxa'
@@ -31,6 +32,7 @@ const overrides: Partial<Record<CharacterId, Tendency>> = {
   '1220': FeixiaoTendency,
   '1221': YunliTendency,
   '1222': LingshaTendency,
+  '1303': RuanMeiTendency,
   '1304': AventurineTendency,
   '1306': SparkleTendency,
   '1308': AcheronTendency,
