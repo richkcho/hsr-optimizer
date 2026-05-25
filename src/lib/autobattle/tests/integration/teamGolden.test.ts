@@ -187,20 +187,22 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-23 after correcting Robin's ult mechanic: ult now advances
-// every other ally 100% AV (was: +50 energy to mainDpsSlot). Feixiao's FUA cadence shifts up
-// (+2.4%) since she gets extra turns, but her ult cadence drops (-3.7%) without the energy
-// feed; Aventurine gains a turn from each Robin ult (+6%). Team total moves ~+0.84%.
+// Golden refrozen on 2026-05-25 after enabling break-damage support: scheduler now decrements
+// an aggregate enemy toughness gauge (default 100) on every ability fire's toughness damage,
+// and credits the breaking attacker with weakness-break damage. Team total moves +1.17%
+// (+213k absolute), all attributed to new BREAK buckets that didn't exist before. FUA/ULT
+// numbers are unchanged since those don't involve break.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy its
 // console output back into this block.
 const GOLDEN = {
-  grandTotal: 18201433,
-  feixiaoTotal: 16044329,
+  grandTotal: 18415256,
+  feixiaoTotal: 16221939,
   feixiaoFua: 4137666,
   feixiaoUlt: 8272178,
-  robinTotal: 615689,
-  sparkleTotal: 337050,
-  aventurineTotal: 1204365,
+  feixiaoBreak: 177609,
+  robinTotal: 630937,
+  sparkleTotal: 338956,
+  aventurineTotal: 1223425,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {
@@ -239,6 +241,7 @@ describe('autobattle team golden', () => {
     const feixiao = result.ledger.byActorBySource['0:primary']!
     approxEq(feixiao.FUA ?? 0, GOLDEN.feixiaoFua)
     approxEq(feixiao.ULT ?? 0, GOLDEN.feixiaoUlt)
+    approxEq(feixiao.BREAK ?? 0, GOLDEN.feixiaoBreak)
     expect(feixiao.SKILL ?? 0).toBeGreaterThan(0)
   })
 })

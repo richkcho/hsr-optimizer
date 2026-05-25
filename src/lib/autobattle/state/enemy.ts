@@ -1,12 +1,14 @@
 import type { ActiveDot, EnemyState } from 'lib/autobattle/types'
 import { avFromSpd } from 'lib/autobattle/scheduler/avQueue'
 
-export function createEnemyState(count: number, spd: number): EnemyState {
+export function createEnemyState(count: number, spd: number, maxToughness: number): EnemyState {
   return {
     count,
     spd,
     clockAv: avFromSpd(spd),
     dots: [],
+    maxToughness,
+    toughness: maxToughness,
   }
 }
 
@@ -14,7 +16,8 @@ export function tickEnemyClock(enemy: EnemyState, dt: number): void {
   enemy.clockAv -= dt
 }
 
-// Called when enemy clock reaches 0. Resets the clock and decrements each DoT's remainingTurns.
+// Called when enemy clock reaches 0. Resets the clock, decrements each DoT's remainingTurns,
+// and steps the broken-state countdown (restoring full toughness when it expires).
 // Returns the dots that should fire this tick (i.e. all currently-active dots before expiry).
 // Expired dots are removed from the registry after this call.
 export function onEnemyTurn(enemy: EnemyState): ActiveDot[] {
@@ -22,6 +25,15 @@ export function onEnemyTurn(enemy: EnemyState): ActiveDot[] {
   const firing = enemy.dots.filter((d) => d.remainingTurns > 0)
   for (const d of enemy.dots) d.remainingTurns -= 1
   enemy.dots = enemy.dots.filter((d) => d.remainingTurns > 0)
+
+  if (enemy.brokenForEnemyTurns !== undefined) {
+    enemy.brokenForEnemyTurns -= 1
+    if (enemy.brokenForEnemyTurns <= 0) {
+      enemy.brokenForEnemyTurns = undefined
+      enemy.toughness = enemy.maxToughness
+    }
+  }
+
   return firing
 }
 

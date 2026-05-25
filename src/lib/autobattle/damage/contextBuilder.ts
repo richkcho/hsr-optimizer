@@ -52,10 +52,11 @@ export interface BuildSlotResolversResult {
 
 const EMPTY_RELIC: SimulationRelic = { set: '', condensedStats: [] }
 
-// Standard autobattle enemy params. Toughness/break aren't modeled in v1.
+// Standard autobattle enemy params. `enemyMaxToughness` flows from the input (default 100)
+// and feeds context.enemyMaxToughness, which `BreakDamageFunction` uses in its base multi.
 const AUTOBATTLE_ENEMY_DEFAULTS = {
   enemyLevel: 95,
-  enemyMaxToughness: 0,
+  enemyMaxToughness: 100,
   enemyWeaknessBroken: false,
   enemyResistance: 0,
   enemyEffectResistance: 0.4,
@@ -124,7 +125,7 @@ function buildFormForSlot(
   // Override enemy fields with autobattle v1 defaults
   form.enemyCount = input.enemyCount
   form.enemyLevel = AUTOBATTLE_ENEMY_DEFAULTS.enemyLevel
-  form.enemyMaxToughness = AUTOBATTLE_ENEMY_DEFAULTS.enemyMaxToughness
+  form.enemyMaxToughness = input.enemyMaxToughness ?? AUTOBATTLE_ENEMY_DEFAULTS.enemyMaxToughness
   form.enemyWeaknessBroken = AUTOBATTLE_ENEMY_DEFAULTS.enemyWeaknessBroken
   form.enemyResistance = AUTOBATTLE_ENEMY_DEFAULTS.enemyResistance
   form.enemyEffectResistance = AUTOBATTLE_ENEMY_DEFAULTS.enemyEffectResistance

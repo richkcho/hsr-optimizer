@@ -267,6 +267,33 @@ function executeAbility(
     notes: chosen.reason ? [chosen.reason] : undefined,
     target: resolveAbilityTarget(member, chosen),
   })
+
+  // Break detection. Aggregate single-toughness-gauge model: this attack's total toughness
+  // damage drives a shared gauge across all enemies; when it crosses zero, treat all enemies
+  // as broken together (multiplied break damage by enemy.count). Only attacks that find the
+  // enemy in an unbroken state contribute — broken-state attacks waste their toughness.
+  if (resolved.toughnessDmg > 0 && state.enemy.brokenForEnemyTurns === undefined) {
+    state.enemy.toughness -= resolved.toughnessDmg
+    if (state.enemy.toughness <= 0) {
+      state.enemy.toughness = 0
+      state.enemy.brokenForEnemyTurns = 1
+      if (resolver.resolveBreak) {
+        const perEnemyBreak = resolver.resolveBreak(state, actorId.slot)
+        const breakDmg = perEnemyBreak * state.enemy.count
+        if (breakDmg > 0) {
+          addDamage(state.ledger, actorId, AbilityKind.BREAK, breakDmg)
+          appendLog(state, {
+            elapsedAv: state.elapsedAv,
+            deltaAv: 0,
+            actor: actorId,
+            kind: AbilityKind.BREAK,
+            description: `${member.characterId} BREAK (triggered by ${chosen.kind})`,
+            damage: breakDmg,
+          })
+        }
+      }
+    }
+  }
 }
 
 // Precedence: explicit tendency choice > characterData hint > kind-based default.

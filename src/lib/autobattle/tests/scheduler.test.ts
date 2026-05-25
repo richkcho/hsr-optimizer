@@ -102,3 +102,84 @@ describe('runAutobattle (mock resolver)', () => {
     expect(fastEnemyTurns).toBeGreaterThan(slowEnemyTurns)
   })
 })
+
+describe('break damage', () => {
+  // Tag actions so toughness drops fast enough to break inside a short window. We use a
+  // toughness gauge of 100 (default) and pile 60 toughness onto each basic — 2 basics break.
+  const mockWithBreak = () =>
+    createMockDamageResolver(
+      { BASIC: 50, SKILL: 100, ULT: 500 },
+      { toughnessDmgPerHit: { BASIC: 60, SKILL: 30 }, breakDmg: 2000 },
+    )
+
+  test('break fires once toughness gauge drops to 0; ledger gets BREAK bucket', () => {
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 600 }),
+      { resolver: mockWithBreak() },
+    )
+    const breakDmg = result.ledger.byActorBySource['0:primary']?.BREAK ?? 0
+    expect(breakDmg).toBeGreaterThan(0)
+    // breakDmg per fire = 2000 from mock × 1 enemy. Anywhere between 1 and a handful of
+    // breaks depending on recovery cycles; just assert the bucket is populated.
+    expect(breakDmg % 2000).toBe(0)
+
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBeGreaterThan(0)
+    for (const e of breakLogEntries) {
+      expect(e.damage).toBe(2000)
+      expect(e.deltaAv).toBe(0)  // break is a side-effect of the breaking ability, no AV advance
+    }
+  })
+
+  test('broken state suppresses further toughness damage until recovery', () => {
+    // Enemy SPD 10 → enemy turn every 1000 AV. With totalAv=600, no enemy turns fire, so the
+    // broken state never recovers. After the first break, subsequent attacks should leave
+    // toughness untouched and no further breaks fire.
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 600, enemySpd: 10 }),
+      { resolver: mockWithBreak() },
+    )
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBe(1)
+  })
+
+  test('aggregate gauge multiplies break by enemyCount', () => {
+    const one = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 500, enemySpd: 10, enemyCount: 1 }),
+      { resolver: mockWithBreak() },
+    )
+    const three = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 500, enemySpd: 10, enemyCount: 3 }),
+      { resolver: mockWithBreak() },
+    )
+    const oneBreak = one.ledger.byActorBySource['0:primary']?.BREAK ?? 0
+    const threeBreak = three.ledger.byActorBySource['0:primary']?.BREAK ?? 0
+    expect(oneBreak).toBeGreaterThan(0)
+    expect(threeBreak).toBe(oneBreak * 3)
+  })
+
+  test('toughness restores after enemy turn → second break can fire', () => {
+    // 4 sec / 4 enemy turns at SPD 134 cover enough enemy turns to recover after break.
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 2000, enemySpd: 200 }),
+      { resolver: mockWithBreak() },
+    )
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBeGreaterThan(1)
+  })
+
+  test('input.enemyMaxToughness overrides default 100', () => {
+    // maxToughness 20: a single skill (30 toughness dmg) is enough to break immediately.
+    // pureDps prefers SKILL while SP affords, so the first action is SKILL.
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 200, enemySpd: 10, enemyMaxToughness: 20 }),
+      { resolver: mockWithBreak() },
+    )
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBe(1)
+    // Break should follow the first ability log entry immediately (no other entries between).
+    const firstSkillIdx = result.log.findIndex((e) => e.kind === 'SKILL')
+    const firstBreakIdx = result.log.findIndex((e) => e.kind === 'BREAK')
+    expect(firstBreakIdx).toBe(firstSkillIdx + 1)
+  })
+})

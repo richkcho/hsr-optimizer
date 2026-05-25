@@ -83,7 +83,7 @@ export function createInitialBattleState(
   }
 
   const state: BattleState = {
-    enemy: createEnemyState(input.enemyCount, input.enemySpd),
+    enemy: createEnemyState(input.enemyCount, input.enemySpd, input.enemyMaxToughness ?? 100),
     totalAv: input.totalAv,
     elapsedAv: 0,
     mainDpsSlot: input.mainDpsSlot,
