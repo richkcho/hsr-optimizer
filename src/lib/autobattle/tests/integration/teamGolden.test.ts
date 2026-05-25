@@ -187,23 +187,25 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after wiring ERR scaling + 50% starting energy. With
-// proper energy modeling every character ults more often (Feixiao/Aventurine/Robin all up),
-// teammate-grant chains (Sunday's +40, etc.) scale by receiver ERR, and Robin's Concerto
-// window opens earlier and more often — boosting her UNIQUE total from 776k → 998k.
-// Team total moves 19.19M → 19.98M (+4.1%). Feixiao FUA +1.5%, ULT +3.8%.
+// Golden refrozen on 2026-05-25 after modeling Robin's Concerto as a frozen-clock state:
+// her primary clock pauses for 111.1 AV (the in-game Concerto countdown SPD-90 entity)
+// while the buff is active, then resumes at clock=0 ("immediately takes action" per the
+// Ultimate description). Effect: Robin can no longer accrue phantom basic energy during
+// Concerto, so she ults less often → fewer Concerto windows → Robin UNIQUE drops from
+// 998k → 727k. Aventurine FUA/ULT rise slightly (less clock contention from a frozen Robin).
+// Team total: 19.98M → 19.51M (-2.4%).
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 19983434,
-  feixiaoTotal: 16794609,
-  feixiaoFua: 4201323,
-  feixiaoUlt: 8590339,
-  feixiaoBreak: 182078,
-  robinTotal: 1613243,
-  robinUnique: 997554,
-  sparkleTotal: 325992,
-  aventurineTotal: 1249591,
+  grandTotal: 19506030,
+  feixiaoTotal: 16428258,
+  feixiaoFua: 4360464,
+  feixiaoUlt: 8272178,
+  feixiaoBreak: 114536,
+  robinTotal: 1362705,
+  robinUnique: 726613,
+  sparkleTotal: 377846,
+  aventurineTotal: 1337220,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

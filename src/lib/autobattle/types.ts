@@ -57,6 +57,10 @@ export interface TeamMember {
 export interface ActorClock {
   id: ActorId
   remainingAv: number
+  // When true, the clock is frozen: it does not tick in advanceAllClocks and argminClock
+  // skips it. Used to model HSR "frozen" states like Robin's Concerto, where the unit
+  // cannot take any actions for the duration of the state.
+  paused?: boolean
 }
 
 export interface ResourceState {
@@ -311,6 +315,12 @@ export interface CharacterData {
   // scenario override is set). Used for rare kits whose traces or light cones grant
   // a non-standard on-entry energy bonus.
   startingEnergyPercent?: number
+
+  // While the named buff is active on this character, freeze the primary clock — the
+  // unit cannot take its own turn or accrue energy from self-actions. When the buff
+  // expires, the clock unpauses; if `actOnResume` is true, the clock is also set to 0
+  // so the unit acts immediately (HSR Concerto semantics).
+  clockPausedByBuff?: { buffId: string; actOnResume?: boolean }
 
   // v1 approximation flags for mechanics we don't fully simulate.
   v1Approx?: {

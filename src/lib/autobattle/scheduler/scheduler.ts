@@ -5,6 +5,7 @@ import {
   advancePercent,
   argminClock,
   avFromSpd,
+  findClock,
 } from 'lib/autobattle/scheduler/avQueue'
 import { createInitialBattleState } from 'lib/autobattle/state/battleState'
 import {
@@ -65,29 +66,34 @@ export function runAutobattle(input: AutobattleInput, options: RunOptions = {}):
   let safetyIters = 2_000_000
 
   while (state.elapsedAv < state.totalAv && safetyIters-- > 0) {
-    // Pick the next clock (smallest remainingAv among all actor clocks + enemy clock).
+    // Sync pause states from buff presence first — a buff that expired in the previous
+    // iteration's advanceTime needs to unpause its target now (and may trigger actOnResume).
+    syncClockPauseStates(state)
+
+    // Pick the next clock (smallest remainingAv among unpaused actor clocks + enemy clock
+    // + earliest av-mode buff expiration). Including buff expiration in dt ensures we don't
+    // over-advance past a buff that should have expired mid-window — important for paused
+    // actors whose unpause is the next meaningful event.
     const minClockIdx = argminClock(state.clocks)
     const actorClock = state.clocks[minClockIdx]
     const actorDt = actorClock?.remainingAv ?? Number.POSITIVE_INFINITY
     const enemyDt = state.enemy.clockAv
+    const buffDt = nextAvBuffExpiration(state)
 
-    const dt = Math.min(actorDt, enemyDt, state.totalAv - state.elapsedAv)
+    const dt = Math.min(actorDt, enemyDt, buffDt, state.totalAv - state.elapsedAv)
     if (dt < 0) break
 
     if (dt > 0) advanceTime(state, dt)
 
-    // After advanceTime, at least one clock is at 0 — process it. When multiple clocks tie at
-    // 0 we process one per iteration; ties are broken by argminClock's order (actor first if
-    // it ties with enemy at the same AV, since enemyDt > actorDt comparison handles strict
-    // inequality below).
+    // After advanceTime, fire whichever event is at zero. Priority: enemy > actor; if neither
+    // fires (because dt was bounded by buffDt or totalAv), the next iteration's sync pass picks
+    // up the buff expiration and we loop without processing a turn.
     if (enemyDt <= actorDt && state.enemy.clockAv <= 0) {
       processEnemyTurn(state, resolver)
-    } else if (actorClock !== undefined) {
+    } else if (actorClock !== undefined && actorClock.remainingAv <= 0 && !actorClock.paused) {
       processActorTurn(state, actorClock.id, resolver)
-    } else {
-      // No actors and enemy hasn't fired yet — clip to totalAv and exit.
-      break
     }
+    // else: only a buff expired (or we hit the totalAv cap) — loop again to re-evaluate.
 
     // Out-of-turn ult sweep — repeat until no slot wants to ult.
     ultPumpLoop(state, resolver)
@@ -481,6 +487,10 @@ function ultPumpLoop(state: BattleState, resolver: DamageResolver): void {
       const member = state.members[slot]
       if (!member) continue
       if (!isUltReady(state.resources, member)) continue
+      // Paused units (e.g. Robin during Concerto) cannot take actions of any kind, including
+      // out-of-turn ults. Skip them — their ult, if ready, fires after the pause ends.
+      const clock = findClock(state, { slot, kind: 'primary' })
+      if (clock?.paused) continue
 
       const ctx = makeTendencyCtx(state, slot)
       const chosen = member.tendency.decideUlt(ctx)
@@ -491,6 +501,41 @@ function ultPumpLoop(state: BattleState, resolver: DamageResolver): void {
       progressed = true
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Pause sync + buff-expiration scheduling
+// ---------------------------------------------------------------------------
+
+// For each character that declares clockPausedByBuff, reconcile their primary clock's
+// paused flag with the current presence of the buff. When a clock transitions from
+// paused → unpaused and the declaration sets actOnResume, also zero out remainingAv so
+// the unit acts on the next loop iteration (HSR Concerto "immediately takes action" rule).
+function syncClockPauseStates(state: BattleState): void {
+  for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
+    const member = state.members[slot]
+    const spec = member?.characterData.clockPausedByBuff
+    if (!spec) continue
+    const clock = findClock(state, { slot, kind: 'primary' })
+    if (!clock) continue
+    const shouldPause = hasActiveBuff(state, spec.buffId)
+    if (clock.paused && !shouldPause && spec.actOnResume) {
+      clock.remainingAv = 0
+    }
+    clock.paused = shouldPause
+  }
+}
+
+// Smallest remaining duration across all av-mode buffs, or +Infinity if none. Caller uses
+// this to cap dt so we never tick a buff past zero in a single advanceTime — important when
+// a buff expiry is the next meaningful event (e.g. unpausing Robin).
+function nextAvBuffExpiration(state: BattleState): number {
+  let min = Number.POSITIVE_INFINITY
+  for (const buff of state.activeBuffs) {
+    if (buff.mode !== 'av') continue
+    if (buff.remaining < min) min = buff.remaining
+  }
+  return min
 }
 
 // ---------------------------------------------------------------------------

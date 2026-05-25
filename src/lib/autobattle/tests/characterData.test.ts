@@ -52,14 +52,21 @@ describe('characterData registry', () => {
     expect(data.grantsEnergyOnAction?.[AbilityKind.ULT]).toBeUndefined()
   })
 
-  test('Robin: ult applies Concerto self-marker buff (2 turnsOnSource)', () => {
+  test('Robin: ult applies Concerto self-marker buff (av-mode, 10000/90 AV)', () => {
     const data = resolveCharacterData('1309' as CharacterId)
     const buffGrants = data.grantsBuffsOnAction?.[AbilityKind.ULT]
     expect(buffGrants?.length).toBe(1)
     expect(buffGrants?.[0].target).toBe('self')
     expect(buffGrants?.[0].buff.id).toBe('Robin.concerto')
-    expect(buffGrants?.[0].buff.remaining).toBe(2)
-    expect(buffGrants?.[0].buff.mode).toBe('turnsOnSource')
+    expect(buffGrants?.[0].buff.mode).toBe('av')
+    // Concerto countdown is a fixed-SPD 90 entity per the Ultimate description.
+    expect(buffGrants?.[0].buff.remaining).toBeCloseTo(10000 / 90, 5)
+  })
+
+  test('Robin: Concerto buff pauses her primary clock with actOnResume', () => {
+    const data = resolveCharacterData('1309' as CharacterId)
+    expect(data.clockPausedByBuff?.buffId).toBe('Robin.concerto')
+    expect(data.clockPausedByBuff?.actOnResume).toBe(true)
   })
 
   test('Robin: Concerto Additional trigger fires UNIQUE while Concerto buff is active', () => {

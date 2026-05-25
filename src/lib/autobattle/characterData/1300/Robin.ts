@@ -6,11 +6,21 @@ import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 // advance here; the buff stat values flow through teammate conditionals at context build.
 // Robin's ult does NOT grant energy to allies.
 //
-// Concerto Additional damage: while Concerto is active, Robin emits an Additional hit
-// (AbilityKind.UNIQUE) on every teammate attack. We approximate Concerto duration as 2 of
-// Robin's own primary turns via the 'Robin.concerto' self-marker — applied on ULT, ticked by
-// turnsOnSource. The trigger fires UNIQUE through the existing FUA-trigger path; the gating
-// is what's new (requiresSourceBuff). Damage routing reuses Robin's prebuilt UNIQUE action.
+// Concerto mechanics (per the official Ultimate "Vox Harmonique, Opus Cosmique"):
+//   - A "Concerto" countdown appears in the action queue at a fixed SPD of 90, giving
+//     Concerto a duration of 10000/90 ≈ 111.11 AV per cycle.
+//   - While Concerto is active, Robin "cannot enter her turn or take action" — modeled
+//     here by pausing her primary clock via clockPausedByBuff.
+//   - On Concerto end, "Robin exits the Concerto state and immediately takes action" —
+//     modeled by actOnResume: true, which sets her clock to 0 on unpause.
+//   - "After every attack by ally targets, Robin deals Physical Additional DMG" — fires
+//     via the existing FUA-trigger path with requiresSourceBuff gating UNIQUE on the buff.
+//     Reuses Robin's prebuilt UNIQUE action from her conditional rather than duplicating
+//     scaling/CR/CD mechanics. (E6 "Moonless Midnight" 8-trigger CRIT DMG cap is not
+//     modeled — irrelevant at E0; would require per-fire damage modifiers if added.)
+const CONCERTO_COUNTDOWN_SPD = 90
+const CONCERTO_DURATION_AV = 10000 / CONCERTO_COUNTDOWN_SPD
+
 export const RobinData: CharacterData = {
   grantsAdvanceOnAction: {
     [AbilityKind.ULT]: { target: 'allAllies', avPercent: 100 },
@@ -21,12 +31,13 @@ export const RobinData: CharacterData = {
         target: 'self',
         buff: {
           id: 'Robin.concerto',
-          remaining: 2,
-          mode: 'turnsOnSource',
+          remaining: CONCERTO_DURATION_AV,
+          mode: 'av',
         },
       },
     ],
   },
+  clockPausedByBuff: { buffId: 'Robin.concerto', actOnResume: true },
   fuaTriggers: [
     {
       id: 'robin.concertoAdditional',

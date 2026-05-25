@@ -10,11 +10,14 @@ export function avFromSpd(spd: number): number {
   return 10000 / Math.max(0.001, spd)
 }
 
-// Returns the index of the clock with the smallest remainingAv. Ties broken by lower slot.
+// Returns the index of the unpaused clock with the smallest remainingAv. Ties broken by
+// lower index. Returns -1 if all clocks are paused (or the list is empty); callers must
+// handle this by falling back to enemy clock / buff expiration as the next event.
 export function argminClock(clocks: ActorClock[]): number {
-  let minIdx = 0
-  let minAv = clocks[0]?.remainingAv ?? Number.POSITIVE_INFINITY
-  for (let i = 1; i < clocks.length; i++) {
+  let minIdx = -1
+  let minAv = Number.POSITIVE_INFINITY
+  for (let i = 0; i < clocks.length; i++) {
+    if (clocks[i].paused) continue
     const av = clocks[i].remainingAv
     if (av < minAv) {
       minAv = av
@@ -25,7 +28,10 @@ export function argminClock(clocks: ActorClock[]): number {
 }
 
 export function advanceAllClocks(clocks: ActorClock[], dt: number): void {
-  for (const c of clocks) c.remainingAv -= dt
+  for (const c of clocks) {
+    if (c.paused) continue
+    c.remainingAv -= dt
+  }
 }
 
 export function findClock(state: BattleState, id: ActorId): ActorClock | undefined {
