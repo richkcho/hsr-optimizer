@@ -187,23 +187,23 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after enabling Robin's Concerto Additional damage trigger.
-// Robin's UNIQUE bucket is new: ~776k credited via the requiresSourceBuff-gated FUA-trigger
-// path, fired by teammate basics during her Concerto window. Robin total moves from 630k →
-// 1407k (+775k), and grand total +4.2%. All other actors' buckets are unchanged because the
-// new UNIQUE fire path doesn't recursively trigger teammates' FUAs.
-// To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy its
-// console output back into this block.
+// Golden refrozen on 2026-05-25 after wiring ERR scaling + 50% starting energy. With
+// proper energy modeling every character ults more often (Feixiao/Aventurine/Robin all up),
+// teammate-grant chains (Sunday's +40, etc.) scale by receiver ERR, and Robin's Concerto
+// window opens earlier and more often — boosting her UNIQUE total from 776k → 998k.
+// Team total moves 19.19M → 19.98M (+4.1%). Feixiao FUA +1.5%, ULT +3.8%.
+// To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
+// its console output back into this block.
 const GOLDEN = {
-  grandTotal: 19191131,
-  feixiaoTotal: 16221939,
-  feixiaoFua: 4137666,
-  feixiaoUlt: 8272178,
-  feixiaoBreak: 177609,
-  robinTotal: 1406812,
-  robinUnique: 775875,
-  sparkleTotal: 338956,
-  aventurineTotal: 1223425,
+  grandTotal: 19983434,
+  feixiaoTotal: 16794609,
+  feixiaoFua: 4201323,
+  feixiaoUlt: 8590339,
+  feixiaoBreak: 182078,
+  robinTotal: 1613243,
+  robinUnique: 997554,
+  sparkleTotal: 325992,
+  aventurineTotal: 1249591,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

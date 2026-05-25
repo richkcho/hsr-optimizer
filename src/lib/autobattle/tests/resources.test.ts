@@ -26,6 +26,7 @@ function makeMember(slot: SlotIndex, maxEnergy = 120): TeamMember {
     path: 'Destruction',
     maxEnergy,
     baseSpd: 100,
+    errPercent: 0,
     tendency: pureDpsTendency,
     characterData: defaultCharacterData,
     actors: [{ slot, kind: 'primary' }],
@@ -53,12 +54,35 @@ describe('Skill points', () => {
 })
 
 describe('Energy', () => {
-  test('defaults to 0; clamps at member.maxEnergy', () => {
+  test('starts at 50% of maxEnergy by default; clamps at member.maxEnergy', () => {
     const member = makeMember(0, 100)
     const r = createResourceState({ 0: member } as Record<SlotIndex, TeamMember>)
-    expect(r.energy[0]).toBe(0)
+    expect(r.energy[0]).toBe(50)
     changeEnergy(r, member, 200)
     expect(r.energy[0]).toBe(100)
+  })
+
+  test('scenario startingEnergyPercent overrides default', () => {
+    const member = makeMember(0, 100)
+    const r = createResourceState({ 0: member } as Record<SlotIndex, TeamMember>, 0.25)
+    expect(r.energy[0]).toBe(25)
+  })
+
+  test('characterData.startingEnergyPercent overrides scenario value', () => {
+    const member = makeMember(0, 100)
+    member.characterData = { ...defaultCharacterData, startingEnergyPercent: 0.75 }
+    // Scenario 0.25 is ignored because the per-character override wins.
+    const r = createResourceState({ 0: member } as Record<SlotIndex, TeamMember>, 0.25)
+    expect(r.energy[0]).toBe(75)
+  })
+
+  test('changeEnergy scales positive deltas by (1 + errPercent)', () => {
+    const member = makeMember(0, 200)
+    member.errPercent = 0.5
+    const r = createResourceState({ 0: member } as Record<SlotIndex, TeamMember>)
+    const start = r.energy[0]!
+    changeEnergy(r, member, 20)            // gains 20 × 1.5 = 30
+    expect(r.energy[0]).toBe(start + 30)
   })
 
   test('energyForAction uses defaults', () => {
@@ -80,6 +104,8 @@ describe('isUltReady / consumeUlt', () => {
   test('energy ult: ready when energy >= maxEnergy', () => {
     const member = makeMember(0, 100)
     const r = createResourceState({ 0: member } as Record<SlotIndex, TeamMember>)
+    // 50% start at maxEnergy=100 ⇒ 50; not ready until we top up to 100.
+    expect(r.energy[0]).toBe(50)
     expect(isUltReady(r, member)).toBe(false)
     changeEnergy(r, member, 100)
     expect(isUltReady(r, member)).toBe(true)
@@ -90,7 +116,7 @@ describe('isUltReady / consumeUlt', () => {
     const r = createResourceState({ 0: member } as Record<SlotIndex, TeamMember>)
     changeEnergy(r, member, 100)
     consumeUlt(r, member)
-    expect(r.energy[0]).toBe(5)  // 5 ult refund from defaults
+    expect(r.energy[0]).toBe(5)  // 5 ult refund from defaults (errPercent=0 so no scaling)
   })
 
   test('stack ult: ready when stacks >= threshold', () => {

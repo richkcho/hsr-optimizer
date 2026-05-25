@@ -14,13 +14,25 @@ const DEFAULT_ENERGY_ON_ACTION: Partial<Record<AbilityKind, number>> = {
   ULT: 5,
 } as unknown as Partial<Record<AbilityKind, number>>
 
-export function createResourceState(members: Record<SlotIndex, TeamMember>): ResourceState {
+// HSR's standard "characters begin combat with 50% energy" rule. Per-character traces
+// or light cones can deviate; characters express that via CharacterData.startingEnergyPercent,
+// which overrides the scenario-level value (which in turn overrides this constant).
+export const DEFAULT_STARTING_ENERGY_PERCENT = 0.5
+
+export function createResourceState(
+  members: Record<SlotIndex, TeamMember>,
+  scenarioStartingEnergyPercent?: number,
+): ResourceState {
   const energy = {} as Record<SlotIndex, number>
   const stacks = {} as Record<SlotIndex, Record<string, number>>
   const fuaTriggerCounters = {} as Record<SlotIndex, Record<string, number>>
   for (const slot of SLOT_INDEXES) {
-    if (members[slot] === undefined) continue
-    energy[slot] = 0
+    const member = members[slot]
+    if (member === undefined) continue
+    const pct = member.characterData.startingEnergyPercent
+      ?? scenarioStartingEnergyPercent
+      ?? DEFAULT_STARTING_ENERGY_PERCENT
+    energy[slot] = Math.floor(member.maxEnergy * pct)
     stacks[slot] = {}
     fuaTriggerCounters[slot] = {}
   }
@@ -39,7 +51,11 @@ export function changeSkillPoints(resources: ResourceState, delta: number): void
 export function changeEnergy(resources: ResourceState, member: TeamMember, delta: number): void {
   const slot = member.slot
   const current = resources.energy[slot] ?? 0
-  resources.energy[slot] = Math.max(0, Math.min(member.maxEnergy, current + delta))
+  // HSR: every in-battle energy gain scales by the receiver's ERR. Drains (negative deltas)
+  // are flat. This single site catches self actions, teammate grants (Sunday's +40), ult
+  // refund (consumeUlt routes here), and v1Approx energy-from-hit.
+  const scaled = delta > 0 ? delta * (1 + member.errPercent) : delta
+  resources.energy[slot] = Math.max(0, Math.min(member.maxEnergy, current + scaled))
 }
 
 // Returns the energy delta this member receives from performing the given action.

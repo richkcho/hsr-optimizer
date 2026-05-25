@@ -40,6 +40,11 @@ export interface TeamMember {
   path: PathName
   maxEnergy: number                                  // game_data.json max_sp (ult cost)
   baseSpd: number
+  // Energy Regen Rate as a decimal (e.g. 0.30 for 30% ERR). Snapshotted at sim-init
+  // from the character's relics+light-cone+traces+conditionals; every positive energy
+  // delta in changeEnergy() is scaled by (1 + errPercent). Mock-resolver tests leave
+  // this at 0. Mid-battle ERR buffs are not modeled in v1.
+  errPercent: number
   tendency: Tendency
   characterData: CharacterData
   actors: ActorId[]                                  // primary + optional memo
@@ -204,6 +209,10 @@ export interface AutobattleInput {
   enemies: AutobattleInputEnemy[]                          // length 1..N; sets enemy.count
   enemySpd: number
   totalAv: number
+  // Scenario-level starting energy as fraction of maxEnergy (default 0.5 — HSR's
+  // standard 50% start). Per-character override on CharacterData.startingEnergyPercent
+  // takes precedence over this; this in turn takes precedence over the 0.5 default.
+  startingEnergyPercent?: number
 }
 
 export interface AutobattleResult {
@@ -297,6 +306,11 @@ export interface CharacterData {
   // Per-character target defaults for each ability kind. Overrides the executor's
   // kind-based default; can itself be overridden by ChosenAbility.target on a given turn.
   abilityTargetHint?: Partial<Record<AbilityKind, AbilityTarget>>
+
+  // Starting energy as fraction of maxEnergy (default 0.5 if neither this nor the
+  // scenario override is set). Used for rare kits whose traces or light cones grant
+  // a non-standard on-entry energy bonus.
+  startingEnergyPercent?: number
 
   // v1 approximation flags for mechanics we don't fully simulate.
   v1Approx?: {

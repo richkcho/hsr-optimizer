@@ -17,6 +17,10 @@ import {
   type SlotIndex,
   type TeamMember,
 } from 'lib/autobattle/types'
+import { calculateBasicEffects, calculateComputedStats } from 'lib/optimization/calculateStats'
+import { StatKey } from 'lib/optimization/engine/config/keys'
+import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
+import { serializeActorId } from 'lib/autobattle/types'
 
 export interface InitialBattleStateResult {
   state: BattleState
@@ -50,6 +54,9 @@ export function createInitialBattleState(
       path: inputMember.path,
       maxEnergy: inputMember.maxEnergy,
       baseSpd: inputMember.baseSpd,
+      // Filled in below once the slot's resolver state is primed (buildResolvers=true).
+      // Mock-resolver tests leave this at 0; they don't exercise ERR-accurate timing.
+      errPercent: 0,
       tendency,
       characterData,
       actors,
@@ -79,6 +86,15 @@ export function createInitialBattleState(
       if (!slotState) continue
       contexts[slot] = slotState.context
       Object.assign(preBuiltActions, buildPreBuiltActionsForSlot({ slot, kind: 'primary' }, slotState.context))
+
+      // Snapshot ERR once per slot. Runs the stat-only portion of the resolver pipeline
+      // against the slot's BASIC action (any action would do — ERR is action-level, same
+      // value across abilities of the same character). Mirrors damageRunner.runActionPipeline
+      // minus the hit-damage compute step.
+      const member = members[slot]
+      if (member) {
+        member.errPercent = snapshotErr(slotState, preBuiltActions, slot)
+      }
     }
   }
 
@@ -89,7 +105,7 @@ export function createInitialBattleState(
     mainDpsSlot: input.mainDpsSlot,
     members,
     clocks,
-    resources: createResourceState(members),
+    resources: createResourceState(members, input.startingEnergyPercent),
     activeBuffs: [],
     ledger: createLedger(),
     log: [],
@@ -98,6 +114,27 @@ export function createInitialBattleState(
   }
 
   return { state, slotResolvers }
+}
+
+// Runs the stats-only portion of the damage pipeline on this slot's BASIC action so the
+// action-level ERR stat (relics + light cone + traces + always-on conditionals) populates
+// x.a. Returns ERR as a decimal (e.g. 0.30 for 30%). Returns 0 if no BASIC action exists.
+function snapshotErr(
+  slotState: SlotResolverState,
+  preBuiltActions: BattleState['preBuiltActions'],
+  slot: SlotIndex,
+): number {
+  const primaryKey = serializeActorId({ slot, kind: 'primary' })
+  const action = preBuiltActions[primaryKey]?.[AbilityKind.BASIC]
+  if (!action) return 0
+
+  const { x, context } = slotState
+  x.clearRegisters()
+  x.setConfig(action.config)
+  x.setPrecompute(action.precomputedStats.a)
+  calculateBasicEffects(x, action, context)
+  calculateComputedStats(x, action, context)
+  return x.getSelfValue(StatKey.ERR)
 }
 
 // Memo SPD resolution for Phase B uses only the characterData.memo.spdSource field. The

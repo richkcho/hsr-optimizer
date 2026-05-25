@@ -26,6 +26,7 @@ function makeMember(maxEnergy = 120, characterData: CharacterData = defaultChara
     path: 'Destruction',
     maxEnergy,
     baseSpd: 100,
+    errPercent: 0,
     tendency: pureDpsTendency,
     characterData,
     actors: [{ slot: 0, kind: 'primary' }],
