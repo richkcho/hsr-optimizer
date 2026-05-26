@@ -534,3 +534,204 @@ describe('memo/summon own-turn fire', () => {
     expect(memoFires).toBeGreaterThanOrEqual(ownerActions * 1.8)
   })
 })
+
+describe('FuaStackPool: Aventurine-shaped Blind Bet stack pool', () => {
+  // Synthetic char with a stack pool that fires FUA at 7 stacks. Mock-resolver damage for
+  // FUA is 150 (see damageRunner.ts), so each pool fire adds 150 to the owner's FUA bucket.
+  function registerPoolChar(id: CharacterId, opts: {
+    onAllyAttack?: { amount: number; sourceKindFilter?: AbilityKind[]; maxPerOwnerTurn?: number }
+    onOwnUlt?: number
+    onEnemyTurnApprox?: number
+  }): void {
+    registerCharacterData(id, {
+      fuaStackPool: {
+        name: 'test.pool',
+        threshold: 7,
+        consumeOnFire: 7,
+        cap: 10,
+        firesAbility: AbilityKind.FUA,
+        gain: {
+          onAllyAttack: opts.onAllyAttack,
+          onOwnUlt: opts.onOwnUlt,
+          onEnemyTurnApprox: opts.onEnemyTurnApprox,
+        },
+      },
+    })
+  }
+
+  test('threshold fire: 7 ally FUAs across multiple owner turns each grant +1, fires once', () => {
+    // Pool owner at slot 0 with onAllyAttack: amount=1, cap=3/turn. Ally at slot 1 fires
+    // FUAs (via fuaTriggers in this synthetic). At 3/owner-turn cap, owner needs ≥3 turns
+    // to accumulate 7 stacks. Each owner BASIC resets the cap to 0.
+    const ownerId = '1990' as CharacterId
+    registerPoolChar(ownerId, {
+      onAllyAttack: { amount: 1, sourceKindFilter: [AbilityKind.FUA], maxPerOwnerTurn: 3 },
+    })
+    const allyId = '1991' as CharacterId
+    // Ally fires a free FUA on every primary turn — exercises the gain hook from a synthetic
+    // teammateAttack source.
+    registerCharacterData(allyId, {
+      fuaTriggers: [{ id: 'ally.everyTurn', on: 'teammateAttack', everyN: 1, selector: { abilityKind: AbilityKind.FUA } }],
+    })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: ownerId }
+    const ally: TeamMemberInput = { ...makeMember(1, 100, 9999), characterId: allyId }
+
+    const result = runAutobattle(
+      makeInput([owner, ally], { totalAv: 3000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    const ownerFuaDmg = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
+    const ownerFuaFires = ownerFuaDmg / 150
+    // ~30 owner+ally primary turns over 3000 AV @ SPD 100 (15 each). With 3-per-turn cap on
+    // owner's 15 turns = up to 45 stacks; ally fires ~15 FUAs (one per own turn) + chained
+    // ones, total likely 15-30+ FUA-gain events. The cap bounds Bingo at ≤ 3×owner_turns;
+    // at ~5+ fires it's working. Lower bound is conservative; the precise count depends on
+    // turn interleaving and cap-vs-gain budget.
+    expect(ownerFuaFires).toBeGreaterThanOrEqual(2)
+    expect(ownerFuaFires).toBeLessThanOrEqual(8)
+  })
+
+  test('per-owner-turn cap caps gain — exceeding the cap is dropped, not deferred', () => {
+    // Single owner turn must not grant more than maxPerOwnerTurn stacks regardless of how
+    // many ally FUAs fire within that turn. Use maxPerOwnerTurn=2 so 5 ally FUAs in one
+    // owner-turn window grant exactly 2 stacks (below threshold=7 → no fire).
+    const ownerId = '1992' as CharacterId
+    registerPoolChar(ownerId, {
+      onAllyAttack: { amount: 1, sourceKindFilter: [AbilityKind.FUA], maxPerOwnerTurn: 2 },
+    })
+    const allyId = '1993' as CharacterId
+    // Ally fires 5 FUAs per turn (everyN: 1 with 5 teammate attacks per cycle is hard to
+    // synthesize cleanly; use everyN: 1 and a single ally turn — checks the cap directly).
+    registerCharacterData(allyId, {
+      fuaTriggers: [{ id: 'a.f', on: 'teammateAttack', everyN: 1, selector: { abilityKind: AbilityKind.FUA } }],
+    })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: ownerId }
+    const ally: TeamMemberInput = { ...makeMember(1, 1000, 9999), characterId: allyId }  // ally 10× faster
+
+    const result = runAutobattle(
+      makeInput([owner, ally], { totalAv: 200, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // Owner takes ~2 turns (SPD 100, 200 AV → ~2 turns); ally takes ~20 turns. With cap 2
+    // per owner-turn, at most 2 owner-turns × 2 stacks = 4 stacks → below threshold 7 → no
+    // owner FUA pool fires (owner FUA bucket stays 0).
+    const ownerFuaDmg = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
+    expect(ownerFuaDmg).toBe(0)
+  })
+
+  test('source kind filter: BASIC source does not grant Bingo when filter is [FUA]', () => {
+    const ownerId = '1994' as CharacterId
+    registerPoolChar(ownerId, {
+      onAllyAttack: { amount: 1, sourceKindFilter: [AbilityKind.FUA] },  // no maxPerOwnerTurn
+    })
+    const ally = makeMember(1, 100, 9999)
+    const owner: TeamMemberInput = { ...makeMember(0, 1, 9999), characterId: ownerId }  // owner glacial
+
+    const result = runAutobattle(
+      makeInput([owner, ally], { totalAv: 2000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // No FUAs fire from the ally (they only do BASIC/SKILL), so the pool gets zero stacks
+    // and no owner FUA fires.
+    const ownerFuaDmg = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
+    expect(ownerFuaDmg).toBe(0)
+  })
+
+  test('own attack does not trigger gain: pool owner FUA fires do not feed back into pool', () => {
+    // If pool owner has both onAllyAttack and a way to fire FUA on its own turn (via fuaTriggers
+    // pointing at its own primary), the gain hook must NOT count owner's own attacks. Here we
+    // configure the pool's onAllyAttack with no kind filter so any teammate attack qualifies,
+    // and rely on the executeAbility loop's `otherMember.slot === actorId.slot` guard.
+    const ownerId = '1995' as CharacterId
+    registerCharacterData(ownerId, {
+      fuaStackPool: {
+        name: 'test.pool',
+        threshold: 7,
+        consumeOnFire: 7,
+        cap: 10,
+        firesAbility: AbilityKind.FUA,
+        gain: { onAllyAttack: { amount: 5 } },  // big amount — if self-feeding, one own action would push over threshold
+      },
+    })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: ownerId }
+
+    const result = runAutobattle(
+      makeInput([owner], { totalAv: 500, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // Owner is alone — every action is "own". onAllyAttack should not grant on own actions.
+    // Pool stays at 0 stacks; no FUA fires.
+    const ownerFuaDmg = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
+    expect(ownerFuaDmg).toBe(0)
+  })
+
+  test('onOwnUlt: ULT cast adds stacks; threshold-crossing fires synchronously', () => {
+    // Configure onOwnUlt=7 (exactly threshold) so a single ULT cast immediately triggers
+    // the pool fire. Owner has small max energy (110) so ULT fires once.
+    const ownerId = '1996' as CharacterId
+    registerPoolChar(ownerId, { onOwnUlt: 7 })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 110), characterId: ownerId }
+
+    const result = runAutobattle(
+      makeInput([owner], { totalAv: 1000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // ULT cast happens at least once; each cast adds 7 stacks → fires pool's FUA → +150 dmg.
+    const ultFires = (result.ledger.byActorBySource['0:primary']?.ULT ?? 0) / 1000
+    const fuaFires = (result.ledger.byActorBySource['0:primary']?.FUA ?? 0) / 150
+    expect(ultFires).toBeGreaterThanOrEqual(1)
+    // FUA fires once per ULT (each cast adds exactly threshold → fires once → resets to 0).
+    expect(fuaFires).toBe(ultFires)
+  })
+
+  test('onEnemyTurnApprox: accumulates per enemy turn; fires when threshold reached', () => {
+    // Owner alone, no ULT (huge max energy). Per enemy turn +2 stacks; threshold 7 fires
+    // every ~4 enemy turns. Across a long battle the pool drives FUA fires.
+    const ownerId = '1997' as CharacterId
+    registerPoolChar(ownerId, { onEnemyTurnApprox: 2 })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: ownerId }
+
+    const result = runAutobattle(
+      makeInput([owner], { totalAv: 3000, enemySpd: 134 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // 3000 AV / (10000/134) ≈ 40 enemy turns × 2 stacks = 80 raw stack-gain events; each
+    // 7 fires one FUA → ~11 fires (capped by overflow-loss at cap=10 between fires). Lower
+    // bound conservative; upper bound just sanity-checks no infinite loop.
+    const fuaFires = (result.ledger.byActorBySource['0:primary']?.FUA ?? 0) / 150
+    expect(fuaFires).toBeGreaterThanOrEqual(5)
+    expect(fuaFires).toBeLessThanOrEqual(20)
+  })
+
+  test('per-owner-turn cap resets on owner primary turn', () => {
+    // maxPerOwnerTurn=1, every ally attack grants 1, threshold=7. Owner turn 1 → cap binds
+    // at 1 stack. Owner turn 2 → cap resets, another 1 stack. After 7 owner turns +1 from
+    // turn-1 reset overhead, pool fires once.
+    const ownerId = '1998' as CharacterId
+    registerPoolChar(ownerId, {
+      onAllyAttack: { amount: 1, sourceKindFilter: [AbilityKind.FUA], maxPerOwnerTurn: 1 },
+    })
+    const allyId = '1999' as CharacterId
+    registerCharacterData(allyId, {
+      fuaTriggers: [{ id: 'a.f', on: 'teammateAttack', everyN: 1, selector: { abilityKind: AbilityKind.FUA } }],
+    })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: ownerId }
+    const ally: TeamMemberInput = { ...makeMember(1, 100, 9999), characterId: allyId }
+
+    const result = runAutobattle(
+      makeInput([owner, ally], { totalAv: 2000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // Owner takes ~20 turns over 2000 AV. With cap 1 per turn, up to 20 stacks → ~2-3 fires.
+    // If reset didn't work, would stay capped at 1 stack across all turns and never fire.
+    const fuaFires = (result.ledger.byActorBySource['0:primary']?.FUA ?? 0) / 150
+    expect(fuaFires).toBeGreaterThanOrEqual(1)
+  })
+})

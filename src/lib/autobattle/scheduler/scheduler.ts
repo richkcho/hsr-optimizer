@@ -37,6 +37,7 @@ import {
   type BattleState,
   type ChosenAbility,
   type EnemyState,
+  type FuaStackPool,
   type GrantTarget,
   serializeActorId,
   type SlotIndex,
@@ -130,6 +131,12 @@ function processActorTurn(state: BattleState, actorId: ActorId, resolver: Damage
     processMemoTurn(state, actorId, member, resolver)
     return
   }
+
+  // Reset per-owner-turn counters before the turn runs (Aventurine's Bingo! cap, etc.).
+  // Reference: suffering2Char.js:34685-34699 — StartTurn listener gated by source===owner
+  // zeros `allyFUABetCounter`. In our sim, the equivalent is the start of the owner's primary
+  // turn — memo turns don't reset (Bingo's counter belongs to Aventurine's clock).
+  resetFuaStackPoolPerTurnCounter(state, member)
 
   const ctx = makeTendencyCtx(state, actorId.slot)
   const chosen = member.tendency.decideTurn(ctx)
@@ -230,6 +237,19 @@ function processEnemyTurn(state: BattleState, resolver: DamageResolver): void {
     const approx = member.characterData.v1Approx?.energyFromEnemyAttacks
     if (approx) changeEnergy(state.resources, member, approx.avgPerEnemyTurn)
   }
+
+  // FuaStackPool gain on enemy turn (v1 approximation of "ally with Fortified Wager hit by
+  // enemy → Aventurine gains stacks"). Reference: suffering2Char.js:34638-34653 ShieldWasHit
+  // listener. Real mechanic depends on shield uptime + per-ally attack routing; v1 collapses
+  // to a flat per-enemy-turn drip on the pool owner. Threshold-firing happens synchronously.
+  for (const member of Object.values(state.members)) {
+    if (!member) continue
+    const pool = member.characterData.fuaStackPool
+    const enemyTurnGain = pool?.gain.onEnemyTurnApprox
+    if (!pool || !enemyTurnGain) continue
+    changeStacks(state.resources, member, pool.name, enemyTurnGain, pool.cap)
+    maybeFirePool(state, member, resolver)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +288,18 @@ function executeAbility(
   if (member.characterData.stacks) {
     const gain = member.characterData.stacks.onAction[chosen.kind] ?? 0
     if (gain) changeStacks(state.resources, member, member.characterData.stacks.name, gain)
+  }
+
+  // FuaStackPool gain on own ULT (Aventurine's Roulette Shark — random 1-7 stacks, modelled
+  // as the averaged value; reference: suffering2Char.js:34402 pokes `aventurineBetGained`
+  // with pointsGained: 4 on ult cast).
+  if (chosen.kind === AbilityKind.ULT) {
+    const ownPool = member.characterData.fuaStackPool
+    const ownUltGain = ownPool?.gain.onOwnUlt
+    if (ownPool && ownUltGain) {
+      changeStacks(state.resources, member, ownPool.name, ownUltGain, ownPool.cap)
+      maybeFirePool(state, member, resolver)
+    }
   }
 
   // Apply grants from characterData (energy/advance/buffs to teammates)
@@ -320,6 +352,24 @@ function executeAbility(
     const memoSpd = otherMember.memoSpd
     if (!memoActor || memoSpd === undefined) continue
     advanceActorPercent(state, memoActor, memoSpd, advance.avPercent)
+  }
+
+  // FuaStackPool gain on teammate attack (Aventurine's Bingo!: +1 stack when an ally fires
+  // a FUA, capped at 3 per Aventurine turn). Source filter + per-owner-turn cap are both
+  // configurable. The hook lives in executeAbility (rather than fireFuaTriggers) so memo
+  // attacks count — processMemoTurn skips fireFuaTriggers but flows through executeAbility.
+  //
+  // Reference: suffering2Char.js:34655-34684 (FUAEnd listener gated by sourceTurn !== owner
+  // and allyFUABetCounter < 3). When threshold reached, fire synchronously via maybeFirePool.
+  for (const otherMember of Object.values(state.members)) {
+    if (!otherMember || otherMember.slot === actorId.slot) continue
+    const pool = otherMember.characterData.fuaStackPool
+    const allyGain = pool?.gain.onAllyAttack
+    if (!pool || !allyGain) continue
+    if (allyGain.sourceKindFilter && !allyGain.sourceKindFilter.includes(chosen.kind)) continue
+    if (!tryConsumeAllyGainBudget(state, otherMember, pool, allyGain.maxPerOwnerTurn)) continue
+    changeStacks(state.resources, otherMember, pool.name, allyGain.amount, pool.cap)
+    maybeFirePool(state, otherMember, resolver)
   }
 
   appendLog(state, {
@@ -543,6 +593,71 @@ function triggerMatches(
     default:
       return false
   }
+}
+
+// ---------------------------------------------------------------------------
+// FuaStackPool helpers
+// ---------------------------------------------------------------------------
+
+// Per-owner-turn counter key for the ally-attack gain cap. Stored in the same stacks bag as
+// the main pool count — keeps related state colocated. The bag is opaque per-character, so
+// the suffixed key doesn't collide with the pool's primary entry.
+function allyTurnCounterKey(pool: FuaStackPool): string {
+  return `${pool.name}.allyTurnCounter`
+}
+
+// Reset Bingo's per-owner-turn counter at the start of the pool owner's primary turn. Called
+// from processActorTurn before tendency.decideTurn runs.
+function resetFuaStackPoolPerTurnCounter(state: BattleState, member: TeamMember): void {
+  const pool = member.characterData.fuaStackPool
+  if (!pool?.gain.onAllyAttack?.maxPerOwnerTurn) return
+  const slotStacks = state.resources.stacks[member.slot] ??= {}
+  slotStacks[allyTurnCounterKey(pool)] = 0
+}
+
+// Increments the per-owner-turn counter if a max is configured; returns whether the gain is
+// allowed under the cap. With no cap, always allows. With a cap, increments and returns true
+// if the new value is within the cap; otherwise leaves state unchanged and returns false.
+function tryConsumeAllyGainBudget(
+  state: BattleState,
+  member: TeamMember,
+  pool: FuaStackPool,
+  maxPerOwnerTurn: number | undefined,
+): boolean {
+  if (maxPerOwnerTurn === undefined) return true
+  const slotStacks = state.resources.stacks[member.slot] ??= {}
+  const key = allyTurnCounterKey(pool)
+  const current = slotStacks[key] ?? 0
+  if (current >= maxPerOwnerTurn) return false
+  slotStacks[key] = current + 1
+  return true
+}
+
+// Fires the pool's configured ability synchronously if stacks have reached the threshold.
+// Consumes `consumeOnFire` stacks then re-runs executeAbility under the pool owner's primary
+// ActorId. Single-fire per call (matches reference: each `aventurineBetGained` poke triggers
+// at most one queued FUA). The fired ability does not recursively trigger fireFuaTriggers —
+// matches the existing behaviour where trigger-fired FUAs don't chain further.
+//
+// Decision: threshold check uses `>=` to match the in-game text quoted in dCharacters.js at
+// byte-offset 218662 ("Upon reaching 7 points of 'Blind Bet,' Aventurine consumes the 7
+// points to launch a Follow-Up ATK"). The reference's listener at suffering2Char.js:34565
+// uses strict-greater `> 7` (firing at ≥ 8), which contradicts its own desc text. See
+// `.tmp/notes/cross-check-gap-investigation.md` Open Q 1 for the resolution.
+function maybeFirePool(state: BattleState, member: TeamMember, resolver: DamageResolver): void {
+  const pool = member.characterData.fuaStackPool
+  if (!pool) return
+  const stacks = state.resources.stacks[member.slot]?.[pool.name] ?? 0
+  if (stacks < pool.threshold) return
+  changeStacks(state.resources, member, pool.name, -pool.consumeOnFire)
+  const fuaActor: ActorId = { slot: member.slot, kind: 'primary' }
+  executeAbility(
+    state,
+    fuaActor,
+    { kind: pool.firesAbility, reason: `${pool.name} pool fire` },
+    resolver,
+    0,
+  )
 }
 
 // ---------------------------------------------------------------------------

@@ -285,6 +285,38 @@ export interface StackResource {
   consumeOnUlt: number | 'all'
 }
 
+// A stack pool that fires a non-ULT ability (typically FUA) when threshold reached.
+// Distinct from StackResource above: StackResource gates an ULT via ultResource:'stacks'
+// (Acheron's nihility stacks), this pool sits alongside normal energy and fires its own
+// ability synchronously when the threshold is crossed. Coexists with energy + StackResource.
+//
+// Modeled after Aventurine's "Blind Bet" (`.tmp/ext/cowaii.io/HonkaiSR/Calculator/dCharacters.js`
+// at byte-offset 218662-218904 for the Talent desc — "Upon reaching 7 points of 'Blind Bet,'
+// Aventurine consumes the 7 points to launch a Follow-Up ATK [...] capped at 10 points").
+export interface FuaStackPool {
+  name: string                          // namespaced, e.g. 'aventurine.blindBets'
+  threshold: number                     // stacks needed to fire
+  consumeOnFire: number                 // stacks consumed when firing
+  cap: number                           // hard upper bound (overflow lost)
+  firesAbility: AbilityKind             // which AbilityKind to execute on fire (FUA, etc.)
+  gain: {
+    // +amount stacks when any teammate (different slot) takes an attack matching the kind
+    // filter. Cap-per-owner-turn resets on the pool owner's primary processActorTurn.
+    onAllyAttack?: {
+      amount: number
+      sourceKindFilter?: AbilityKind[]
+      maxPerOwnerTurn?: number
+    }
+    // +N stacks when the pool owner casts their own ULT (Roulette Shark grants random 1-7,
+    // modelled as the averaged value here).
+    onOwnUlt?: number
+    // v1 approximation for "ally with shield hit by enemy". The reference mechanic requires
+    // tracking per-ally shield possession and enemy attack routing — neither of which the
+    // sim does in v1 — so it's collapsed to a flat per-enemy-turn drip.
+    onEnemyTurnApprox?: number
+  }
+}
+
 export interface MemoData {
   entityName: string  // matches the character's entityDeclaration() value
   // 'entityDefinition' = use the EntityDefinition.memoBaseSpd{Flat,Scaling} fields directly.
@@ -333,6 +365,10 @@ export interface CharacterData {
 
   // FUA trigger conditions (codifies "Feixiao every 2 ally attacks", Numby on marked target).
   fuaTriggers?: FuaTrigger[]
+
+  // Stack pool that fires a non-ULT ability (typically FUA) when threshold reached.
+  // Aventurine's Blind Bet pool — see FuaStackPool docstring.
+  fuaStackPool?: FuaStackPool
 
   // Memosprite/summon. Adds a memo actor to the AV queue when present.
   memo?: MemoData
