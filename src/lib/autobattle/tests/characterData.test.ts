@@ -112,11 +112,21 @@ describe('characterData registry', () => {
     expect(data.grantsAdvanceOnAction?.[AbilityKind.SKILL]?.avPercent).toBe(50)
   })
 
-  test('Aventurine: energy-from-hit approx + FUA trigger', () => {
+  test('Aventurine: Blind Bet stack pool drives FUA fires', () => {
     const data = resolveCharacterData('1304' as CharacterId)
-    expect(data.v1Approx?.energyFromEnemyAttacks?.avgPerEnemyTurn).toBe(6)
-    expect(data.fuaTriggers?.length).toBe(1)
-    expect(data.fuaTriggers?.[0].everyN).toBe(7)
+    expect(data.fuaStackPool?.name).toBe('aventurine.blindBets')
+    expect(data.fuaStackPool?.threshold).toBe(7)
+    expect(data.fuaStackPool?.consumeOnFire).toBe(7)
+    expect(data.fuaStackPool?.cap).toBe(10)
+    expect(data.fuaStackPool?.firesAbility).toBe(AbilityKind.FUA)
+    expect(data.fuaStackPool?.gain.onAllyAttack?.amount).toBe(1)
+    expect(data.fuaStackPool?.gain.onAllyAttack?.maxPerOwnerTurn).toBe(3)
+    expect(data.fuaStackPool?.gain.onAllyAttack?.sourceKindFilter).toEqual([AbilityKind.FUA])
+    expect(data.fuaStackPool?.gain.onOwnUlt).toBe(4)
+    expect(data.fuaStackPool?.gain.onEnemyTurnApprox).toBe(1.3)
+    // Old shape removed: stack pool replaces fuaTriggers + v1Approx energy approximation.
+    expect(data.fuaTriggers).toBeUndefined()
+    expect(data.v1Approx?.energyFromEnemyAttacks).toBeUndefined()
   })
 
   test('Yunli: counter FUA trigger every 3', () => {

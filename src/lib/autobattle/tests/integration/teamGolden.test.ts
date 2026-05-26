@@ -129,23 +129,24 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after migrating to buildPlaceholderCharacter (realistic
-// per-relic substat distribution + properly-scaled main stats). Total team damage rose
-// substantially because percent main stats now contribute correctly (previously they were
-// silently scaled by 0.01 in the makeRelic helper, dropping ~100% of their value).
-// Team total 21.7M → 31.5M (+45%) — driven by mains correctly flowing through to ATK/CR/CD.
+// Golden refrozen on 2026-05-25 after Aventurine's FUA mechanic switched from a count-based
+// `fuaTriggers` heuristic to the `fuaStackPool` (Blind Bet) framework. Per-character deltas:
+//   - Aventurine total: 3.97M → 3.80M (-4.2%). FUA component rose (1.51M, up from prior),
+//     ULT component fell (0.92M from removing the v1Approx flat enemy-turn energy drip).
+//   - Sparkle/Feixiao/Robin within ±1.5% (Sparkle's BREAK shifted slightly as Aventurine
+//     now grabs more break credits via the additional FUA fires).
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 31540864,
-  feixiaoTotal: 24382507,
+  grandTotal: 31408920,
+  feixiaoTotal: 24419931,
   feixiaoFua: 5982967,
   feixiaoUlt: 13018076,
-  feixiaoBreak: 110464,
+  feixiaoBreak: 147888,
   robinTotal: 2914371,
   robinUnique: 2914371,
-  sparkleTotal: 275232,
-  aventurineTotal: 3968754,
+  sparkleTotal: 271087,
+  aventurineTotal: 3803529,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

@@ -1,27 +1,38 @@
 import type { CharacterData } from 'lib/autobattle/types'
 import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 
-// Aventurine regens energy whenever an ally or enemy attacks. v1 doesn't simulate
-// being-hit, so we approximate steady-state energy gain at ~6 per enemy turn (≈ 30 energy
-// over 5 enemy turns, matching mid-game observation).
-// His FUA fires on ally crit but we model it as a teammate-attack trigger for simplicity —
-// the trigger system has no crit notion in v1.
+// Aventurine's Talent FUA ("Shot Loaded Right") is driven by a stack pool — "Blind Bet" — not
+// by a count-based teammate-attack trigger. Stacks accumulate from three sources and the FUA
+// fires synchronously when stacks reach 7. See the FuaStackPool docstring + the implementation
+// plan in `.tmp/notes/cross-check-gap-investigation.md` (section "Aventurine FUA stack-pool —
+// implementation plan") for the design rationale and reference citations.
 export const AventurineData: CharacterData = {
-  // FUA energy: reference attackWrapper iterates 7 bounces, each granting bounceData.energy=1
-  // (per the talent's energyRegen=1 × bounceCount=7). Override the default FUA=5.
+  // FUA energy: 7 bounces × 1 energy/bounce per the talent's energyRegen=1 × bounceCount=7.
+  // Overrides the default FUA=5.
   energyOnAction: {
     [AbilityKind.FUA]: 7,
   },
-  fuaTriggers: [
-    {
-      id: 'aventurine.allyCrit',
-      on: 'teammateAttack',
-      everyN: 7,  // ~1 FUA per 7 ally attacks approximates the crit-driven trigger rate
-      selector: { abilityKind: AbilityKind.FUA },
+  fuaStackPool: {
+    name: 'aventurine.blindBets',
+    threshold: 7,
+    consumeOnFire: 7,
+    cap: 10,
+    firesAbility: AbilityKind.FUA,
+    gain: {
+      // Bingo! trace: +1 stack when any ally fires a FUA, capped at 3 per Aventurine turn
+      // (reset on his primary processActorTurn). Source filter restricts to FUA-kind only.
+      onAllyAttack: {
+        amount: 1,
+        sourceKindFilter: [AbilityKind.FUA],
+        maxPerOwnerTurn: 3,
+      },
+      // Roulette Shark ULT: random 1-7 stacks, modelled as the averaged +4.
+      onOwnUlt: 4,
+      // v1 approximation of "ally with Fortified Wager hit by enemy → +1 stack" (and +2 if
+      // Aventurine himself is hit). The real mechanic needs per-ally shield uptime + enemy
+      // attack routing, neither of which the sim does in v1 — collapsed to a flat drip.
+      onEnemyTurnApprox: 1.3,
     },
-  ],
-  v1Approx: {
-    energyFromEnemyAttacks: { avgPerEnemyTurn: 6 },
   },
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'allEnemies',  // AoE Imaginary attack (Imaginary Numinosity)
