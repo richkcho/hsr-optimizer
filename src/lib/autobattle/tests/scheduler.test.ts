@@ -248,6 +248,34 @@ describe('break damage', () => {
     expect(result.ledger.byActorBySource['0:primary']?.BREAK ?? 0).toBeGreaterThan(0)
   })
 
+  test('breaking an enemy delays its next turn by 0.25 × baseAV', () => {
+    // Single actor SPD 200 (turn every 50 AV) vs single enemy SPD 100 (turn every 100 AV,
+    // delay = 0.25 × 100 = 25 AV on break). The actor's first BASIC breaks the enemy
+    // (toughness 60 / 60 per hit). enemySpd=100 keeps the broken state from recovering
+    // before the enemy can take its first turn.
+    //
+    // Without delay: actor turn at AV=50 (break fires), enemy turn at AV=100.
+    // With delay:    actor turn at AV=50 (break fires) + clock pushed to 75-from-50,
+    //                actor again at AV=100, enemy turn at AV=125.
+    const result = runAutobattle(
+      makeInput(
+        [makeMember(0, 200, 9999)],
+        { totalAv: 200, enemySpd: 100, enemies: enemies(60) },
+      ),
+      {
+        resolver: createMockDamageResolver(
+          { BASIC: 50, SKILL: 100, ULT: 500 },
+          { toughnessDmgPerHit: { BASIC: 60, SKILL: 30 }, breakDmg: 2000 },
+        ),
+      },
+    )
+    const firstEnemyTurn = result.log.find((e) => e.kind === 'ENEMY_TURN')
+    expect(firstEnemyTurn).toBeDefined()
+    // 125 AV expected — but tolerate ±1 AV against floating-point drift in clock arithmetic.
+    expect(firstEnemyTurn!.elapsedAv).toBeGreaterThanOrEqual(124)
+    expect(firstEnemyTurn!.elapsedAv).toBeLessThanOrEqual(126)
+  })
+
   test('action.config.enemyWeaknessBroken flips true after the target enemy breaks', () => {
     // Real preBuiltActions only exist when buildResolvers: true (the real pipeline path).
     // For a focused unit test we stuff a stub action object on first resolve so the

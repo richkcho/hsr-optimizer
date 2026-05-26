@@ -17,7 +17,7 @@ import {
   tickTurnsOnSource,
   tickTurnsOnTarget,
 } from 'lib/autobattle/state/buffs'
-import { onEnemyTurn } from 'lib/autobattle/state/enemy'
+import { breakActionDelayAv, onEnemyTurn } from 'lib/autobattle/state/enemy'
 import { addDamage } from 'lib/autobattle/state/ledger'
 import {
   changeEnergy,
@@ -72,14 +72,14 @@ export function runAutobattle(input: AutobattleInput, options: RunOptions = {}):
     // iteration's advanceTime needs to unpause its target now (and may trigger actOnResume).
     syncClockPauseStates(state)
 
-    // Pick the next clock (smallest remainingAv among unpaused actor clocks + enemy clock
-    // + earliest av-mode buff expiration). Including buff expiration in dt ensures we don't
-    // over-advance past a buff that should have expired mid-window — important for paused
-    // actors whose unpause is the next meaningful event.
+    // Pick the next clock (smallest remainingAv among unpaused actor clocks + per-enemy
+    // clocks + earliest av-mode buff expiration). Including buff expiration in dt ensures
+    // we don't over-advance past a buff that should have expired mid-window — important
+    // for paused actors whose unpause is the next meaningful event.
     const minClockIdx = argminClock(state.clocks)
     const actorClock = state.clocks[minClockIdx]
     const actorDt = actorClock?.remainingAv ?? Number.POSITIVE_INFINITY
-    const enemyDt = state.enemy.clockAv
+    const enemyDt = minEnemyClock(state.enemy.clockAv)
     const buffDt = nextAvBuffExpiration(state)
 
     const dt = Math.min(actorDt, enemyDt, buffDt, state.totalAv - state.elapsedAv)
@@ -89,9 +89,12 @@ export function runAutobattle(input: AutobattleInput, options: RunOptions = {}):
 
     // After advanceTime, fire whichever event is at zero. Priority: enemy > actor; if neither
     // fires (because dt was bounded by buffDt or totalAv), the next iteration's sync pass picks
-    // up the buff expiration and we loop without processing a turn.
-    if (enemyDt <= actorDt && state.enemy.clockAv <= 0) {
-      processEnemyTurn(state, resolver)
+    // up the buff expiration and we loop without processing a turn. With per-enemy clocks, at
+    // most one enemy is at zero per iteration (the one whose clock matched the chosen dt) —
+    // any tied enemies fire on the next iteration's dt-0 advance.
+    if (enemyDt <= actorDt && enemyDt <= 0) {
+      const firedEnemyIndex = firstEnemyAtZero(state.enemy.clockAv)
+      if (firedEnemyIndex >= 0) processEnemyTurn(state, resolver, firedEnemyIndex)
     } else if (actorClock !== undefined && actorClock.remainingAv <= 0 && !actorClock.paused) {
       processActorTurn(state, actorClock.id, resolver)
     }
@@ -117,8 +120,24 @@ export function runAutobattle(input: AutobattleInput, options: RunOptions = {}):
 function advanceTime(state: BattleState, dt: number): void {
   state.elapsedAv += dt
   advanceAllClocks(state.clocks, dt)
-  state.enemy.clockAv -= dt
+  for (let i = 0; i < state.enemy.clockAv.length; i++) state.enemy.clockAv[i] -= dt
   tickAvBuffs(state, dt)
+}
+
+function minEnemyClock(clockAv: number[]): number {
+  if (clockAv.length === 0) return Number.POSITIVE_INFINITY
+  let min = clockAv[0]
+  for (let i = 1; i < clockAv.length; i++) {
+    if (clockAv[i] < min) min = clockAv[i]
+  }
+  return min
+}
+
+function firstEnemyAtZero(clockAv: number[]): number {
+  for (let i = 0; i < clockAv.length; i++) {
+    if (clockAv[i] <= 0) return i
+  }
+  return -1
 }
 
 // ---------------------------------------------------------------------------
@@ -194,8 +213,18 @@ function resetClockFor(state: BattleState, actorId: ActorId, spd: number): void 
 // Enemy turn (DoT ticks)
 // ---------------------------------------------------------------------------
 
-function processEnemyTurn(state: BattleState, resolver: DamageResolver): void {
-  const firing = onEnemyTurn(state.enemy)
+// Per-enemy turn handler. Resets the firing enemy's clock and ticks its broken-state
+// recovery; also fires the per-enemy-turn side-effects (shared DoT tick, ENEMY_TURN log,
+// energy-from-being-hit, FuaStackPool gain). All of those fire on every per-enemy turn —
+// game-accurate semantics where each enemy attack triggers one round of side-effects.
+// v1 caveat: shared DoTs ticking N times per cycle inflates DoT counts in N-enemy
+// scenarios relative to the prior shared-clock model; per-enemy DoT routing is v2 scope.
+// Calibration constants (Aventurine.onEnemyTurnApprox, v1Approx.energyFromEnemyAttacks)
+// are read as "per per-enemy turn" — characters tuned against single-enemy goldens may
+// run hot in multi-enemy scenarios until re-calibrated.
+function processEnemyTurn(state: BattleState, resolver: DamageResolver, enemyIndex: number): void {
+  const firing = onEnemyTurn(state.enemy, enemyIndex)
+
   tickTurnsOnEnemy(state)
 
   for (const dot of firing) {
@@ -432,6 +461,12 @@ function executeAbility(
 
       state.enemy.toughness[i] = 0
       state.enemy.brokenForEnemyTurns[i] = 1
+
+      // Action delay: push the broken enemy's clock back by 0.25 × baseAV (HSR's standard
+      // weakness-break action delay; Imaginary stagger of ~33% is out of scope for v1).
+      // Grounded in .tmp/raw-battle-log-topaz.json line 1 (boss SPD 158 → 15.823 AV shift).
+      state.enemy.clockAv[i] += breakActionDelayAv(state.enemy, i)
+
       if (!resolver.resolveBreak) continue
 
       const breakDmg = resolver.resolveBreak(state, actorId.slot, state.enemy.maxToughness[i])

@@ -1,5 +1,6 @@
 import {
   addOrRefreshDot,
+  breakActionDelayAv,
   createEnemyState,
   onEnemyTurn,
   tickEnemyClock,
@@ -26,7 +27,8 @@ describe('createEnemyState', () => {
   test('builds per-enemy arrays of length === count', () => {
     const enemy = createEnemyState(enemies(140, 100, 100), 100)
     expect(enemy.count).toBe(3)
-    expect(enemy.clockAv).toBe(100)
+    expect(enemy.spd).toEqual([100, 100, 100])
+    expect(enemy.clockAv).toEqual([100, 100, 100])
     expect(enemy.dots).toEqual([])
     expect(enemy.maxToughness).toEqual([140, 100, 100])
     expect(enemy.toughness).toEqual([140, 100, 100])
@@ -53,26 +55,36 @@ describe('createEnemyState', () => {
 })
 
 describe('tickEnemyClock', () => {
-  test('subtracts dt from clockAv', () => {
+  test('subtracts dt from every enemy clock independently', () => {
     const enemy = createEnemyState(enemies(100, 100, 100), 100)
     tickEnemyClock(enemy, 25)
-    expect(enemy.clockAv).toBe(75)
+    expect(enemy.clockAv).toEqual([75, 75, 75])
   })
 })
 
 describe('onEnemyTurn', () => {
-  test('resets clock; returns dots that fire; decrements remainingTurns; expires when 0', () => {
+  test('enemyIndex=0 ticks shared DoTs and resets that enemy\'s clock', () => {
     const enemy = createEnemyState(enemies(100), 100)
     enemy.dots = [makeDot({ remainingTurns: 1 }), makeDot({ remainingTurns: 3, appliedBy: 1 })]
-    enemy.clockAv = 0
-    const firing = onEnemyTurn(enemy)
+    enemy.clockAv[0] = 0
+    const firing = onEnemyTurn(enemy, 0)
     expect(firing).toHaveLength(2)
-    expect(enemy.clockAv).toBe(100)
+    expect(enemy.clockAv[0]).toBe(100)
     expect(enemy.dots).toHaveLength(1)  // the 1-turn dot expired
     expect(enemy.dots[0].remainingTurns).toBe(2)
   })
 
-  test('ticks each enemy broken-state countdown independently', () => {
+  test('shared DoTs tick on every per-enemy turn (issue #10 v1 semantics)', () => {
+    const enemy = createEnemyState(enemies(100, 100, 100), 100)
+    enemy.dots = [makeDot({ remainingTurns: 3 })]
+    enemy.clockAv[1] = 0
+    const firing = onEnemyTurn(enemy, 1)
+    expect(firing).toHaveLength(1)
+    expect(enemy.dots[0].remainingTurns).toBe(2)  // ticked down on a non-[0] enemy turn
+    expect(enemy.clockAv[1]).toBe(100)            // enemy[1]'s clock did reset
+  })
+
+  test('ticks only the firing enemy\'s broken-state countdown', () => {
     const enemy = createEnemyState(enemies(100, 100, 100), 100)
     enemy.brokenForEnemyTurns[0] = 2
     enemy.brokenForEnemyTurns[1] = 1
@@ -80,17 +92,21 @@ describe('onEnemyTurn', () => {
     enemy.toughness[0] = 0
     enemy.toughness[1] = 0
 
-    enemy.clockAv = 0
-    onEnemyTurn(enemy)
+    enemy.clockAv[1] = 0
+    onEnemyTurn(enemy, 1)
 
-    expect(enemy.brokenForEnemyTurns[0]).toBe(1)
-    expect(enemy.toughness[0]).toBe(0)         // still broken — toughness still 0
+    // Only enemy[1]'s countdown ticked.
+    expect(enemy.brokenForEnemyTurns[0]).toBe(2)         // untouched
+    expect(enemy.brokenForEnemyTurns[1]).toBeUndefined() // recovered
+    expect(enemy.toughness[1]).toBe(100)                  // restored
+    expect(enemy.brokenForEnemyTurns[2]).toBeUndefined() // never broken
+  })
+})
 
-    expect(enemy.brokenForEnemyTurns[1]).toBeUndefined()  // recovered
-    expect(enemy.toughness[1]).toBe(100)        // restored
-
-    expect(enemy.brokenForEnemyTurns[2]).toBeUndefined()  // never broken
-    expect(enemy.toughness[2]).toBe(100)
+describe('breakActionDelayAv', () => {
+  test('matches 0.25 × baseAV (capture-grounded boss SPD 158 → 15.823)', () => {
+    const enemy = createEnemyState([{ maxToughness: 140 }], 158)
+    expect(breakActionDelayAv(enemy, 0)).toBeCloseTo(15.823, 2)
   })
 })
 

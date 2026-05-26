@@ -129,26 +129,23 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after the scheduler started flipping
-// action.config.enemyWeaknessBroken based on observed per-enemy broken state (closes #7).
-// Feixiao's totals are unchanged — her kit's initializeConfigurationsContainer already
-// pre-sets `enemyWeaknessBroken=true` for all actions via `weaknessBrokenUlt`, and the
-// scheduler ORs that kit override with observed broken so the kit assumption is preserved.
-// Robin / Sparkle / Aventurine each gain ~4% as their actions now correctly land the
-// broken-state damage bonus (baseUniversalMulti 0.9 → 1.0) on attacks against the broken
-// enemy that previously went unbonused.
+// Golden refrozen on 2026-05-25 after the per-enemy clock refactor (#10). With a single
+// enemy the cadence is unchanged, but the 0.25 × baseAV break-action delay reshuffles
+// enemy turn timing relative to actor turns — small (<1%) shifts across the team plus a
+// modest BREAK-bucket rotation (Sparkle/Aventurine swap whose attack lands the second
+// break of the run).
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 28004903,
-  feixiaoTotal: 22081627,
+  grandTotal: 27979306,
+  feixiaoTotal: 22095870,
   feixiaoFua: 5519999,
   feixiaoUlt: 11258877,
-  feixiaoBreak: 112019,
-  robinTotal: 2187339,
-  robinUnique: 1827265,
-  sparkleTotal: 287829,
-  aventurineTotal: 3448108,
+  feixiaoBreak: 126263,
+  robinTotal: 2185008,
+  robinUnique: 1823960,
+  sparkleTotal: 289003,
+  aventurineTotal: 3409426,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

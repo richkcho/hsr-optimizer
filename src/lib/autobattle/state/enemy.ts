@@ -3,10 +3,11 @@ import { avFromSpd } from 'lib/autobattle/scheduler/avQueue'
 
 export function createEnemyState(enemies: AutobattleInputEnemy[], spd: number): EnemyState {
   const maxToughness = enemies.map((e) => e.maxToughness)
+  const spdArr = enemies.map(() => spd)
   return {
     count: enemies.length,
-    spd,
-    clockAv: avFromSpd(spd),
+    spd: spdArr,
+    clockAv: spdArr.map((s) => avFromSpd(s)),
     dots: [],
     maxToughness,
     toughness: [...maxToughness],
@@ -15,33 +16,44 @@ export function createEnemyState(enemies: AutobattleInputEnemy[], spd: number): 
   }
 }
 
+// Tick every enemy clock down by dt. Per-enemy SPDs may differ in future; this advances
+// each clock independently (no shared cadence assumption).
 export function tickEnemyClock(enemy: EnemyState, dt: number): void {
-  enemy.clockAv -= dt
+  for (let i = 0; i < enemy.clockAv.length; i++) enemy.clockAv[i] -= dt
 }
 
-// Called when enemy clock reaches 0. Resets the clock, decrements each DoT's remainingTurns,
-// and steps each enemy's broken-state countdown (restoring its full toughness on expiry).
-// Returns the dots that should fire this tick (i.e. all currently-active dots before expiry).
-// Expired dots are removed from the registry after this call.
-export function onEnemyTurn(enemy: EnemyState): ActiveDot[] {
-  enemy.clockAv = avFromSpd(enemy.spd)
-  const firing = enemy.dots.filter((d) => d.remainingTurns > 0)
-  for (const d of enemy.dots) d.remainingTurns -= 1
-  enemy.dots = enemy.dots.filter((d) => d.remainingTurns > 0)
+// Called when an enemy's clock reaches 0. Resets that enemy's clock and decrements its
+// broken-state countdown (restoring full toughness on expiry). Shared DoTs tick on every
+// per-enemy turn (issue #10: "v1 ticks shared DoTs on every enemy turn") — per-enemy DoT
+// routing is v2 scope. Returns the dots that should fire this tick.
+export function onEnemyTurn(enemy: EnemyState, enemyIndex: number): ActiveDot[] {
+  enemy.clockAv[enemyIndex] = avFromSpd(enemy.spd[enemyIndex])
 
-  for (let i = 0; i < enemy.count; i++) {
-    const remaining = enemy.brokenForEnemyTurns[i]
-    if (remaining === undefined) continue
+  // Per-enemy break-state countdown for the firing enemy. HSR recovery semantics:
+  // a broken enemy recovers after taking its own next turn.
+  const remaining = enemy.brokenForEnemyTurns[enemyIndex]
+  if (remaining !== undefined) {
     const next = remaining - 1
     if (next <= 0) {
-      enemy.brokenForEnemyTurns[i] = undefined
-      enemy.toughness[i] = enemy.maxToughness[i]
+      enemy.brokenForEnemyTurns[enemyIndex] = undefined
+      enemy.toughness[enemyIndex] = enemy.maxToughness[enemyIndex]
     } else {
-      enemy.brokenForEnemyTurns[i] = next
+      enemy.brokenForEnemyTurns[enemyIndex] = next
     }
   }
 
+  const firing = enemy.dots.filter((d) => d.remainingTurns > 0)
+  for (const d of enemy.dots) d.remainingTurns -= 1
+  enemy.dots = enemy.dots.filter((d) => d.remainingTurns > 0)
   return firing
+}
+
+// Action-gauge delay applied to a broken enemy's next turn. Grounded in capture data:
+// .tmp/raw-battle-log-topaz.json line 1 (oldAV: 50.824… → newAV: 66.647… against a
+// SPD-158 boss, Δ ≈ 15.823) matches exactly 0.25 × (10000 / 158). Imaginary-element
+// stagger historically deals more (~33%) but is out of scope for v1.
+export function breakActionDelayAv(enemy: EnemyState, enemyIndex: number): number {
+  return 0.25 * avFromSpd(enemy.spd[enemyIndex])
 }
 
 export function addOrRefreshDot(enemy: EnemyState, dot: ActiveDot): void {

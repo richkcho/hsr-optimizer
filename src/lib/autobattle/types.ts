@@ -81,8 +81,14 @@ export interface ResourceState {
 
 export interface EnemyState {
   count: number       // derived === toughness.length; kept for read-site clarity
-  spd: number         // shared across all enemies; configurable
-  clockAv: number     // ticks down by dt; resets to 10000/spd; triggers DoT ticks
+  // Per-enemy action gauge state. All arrays have length === count.
+  // spd: per-enemy SPD. v1 takes a single scalar from AutobattleInput.enemySpd and replicates
+  //   it across enemies (HSR mob SPDs do differ — boss vs elite — but we don't surface that
+  //   in the input schema yet). Per-enemy SPD via input is forward-compat work.
+  // clockAv: per-enemy AV countdown. Ticks down by dt; resets to 10000/spd on that enemy's
+  //   turn; pushed back by 0.25 × baseAV on break (action delay).
+  spd: number[]
+  clockAv: number[]
   dots: ActiveDot[]
 
   // Per-enemy toughness/break state. All arrays have length === count.
