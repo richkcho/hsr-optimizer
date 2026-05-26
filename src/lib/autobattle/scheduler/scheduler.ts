@@ -1,4 +1,4 @@
-import type { DamageResolver } from 'lib/autobattle/damage/damageRunner'
+import type { AbilityResolution, DamageResolver } from 'lib/autobattle/damage/damageRunner'
 import { createRealDamageResolver } from 'lib/autobattle/damage/damageRunner'
 import {
   advanceActorPercent,
@@ -390,11 +390,18 @@ function executeAbility(
   // enemy (single-target abilities → only enemy[0]; AoE → every enemy). Each broken enemy
   // credits the breaking attacker once, using that enemy's own maxToughness in the
   // break-damage formula. Broken enemies absorb no further toughness damage until recovery.
+  //
+  // Element gating: an enemy with a populated weakness list only takes toughness damage
+  // from hits whose primary element matches one entry. Undefined / empty list = weak to all
+  // (preserves the pre-routing default; goldens captured with `weaknessOverrides: All` keep
+  // the same behavior). The resolver supplies the action's element via AbilityResolution;
+  // a mock resolver omitting `element` is treated as weak-to-all-compatible (no gate).
   if (resolved.toughnessDmg > 0) {
     const target = resolveAbilityTarget(member, chosen)
     const targetIndices = resolveTargetEnemyIndices(target, state.enemy)
     for (const i of targetIndices) {
       if (state.enemy.brokenForEnemyTurns[i] !== undefined) continue
+      if (!hitElementMatchesWeakness(resolved.element, state.enemy.weaknesses[i])) continue
       state.enemy.toughness[i] -= resolved.toughnessDmg
       if (state.enemy.toughness[i] > 0) continue
 
@@ -416,6 +423,15 @@ function executeAbility(
       })
     }
   }
+}
+
+function hitElementMatchesWeakness(
+  hitElement: AbilityResolution['element'],
+  weaknesses: EnemyState['weaknesses'][number],
+): boolean {
+  if (!weaknesses || weaknesses.length === 0) return true
+  if (!hitElement) return true
+  return weaknesses.includes(hitElement)
 }
 
 // Map an AbilityTarget onto concrete enemy indices that take toughness damage.

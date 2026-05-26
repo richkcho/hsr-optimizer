@@ -38,6 +38,18 @@ describe('createEnemyState', () => {
     enemy.toughness[0] = 0
     expect(enemy.maxToughness[0]).toBe(100)
   })
+
+  test('weaknesses array plumbs per-enemy element lists; missing entries stay undefined', () => {
+    const enemy = createEnemyState(
+      [
+        { maxToughness: 140, weaknesses: ['Fire', 'Ice'] },
+        { maxToughness: 100 },
+        { maxToughness: 100, weaknesses: ['Lightning'] },
+      ],
+      100,
+    )
+    expect(enemy.weaknesses).toEqual([['Fire', 'Ice'], undefined, ['Lightning']])
+  })
 })
 
 describe('tickEnemyClock', () => {

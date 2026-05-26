@@ -10,6 +10,7 @@ export function createEnemyState(enemies: AutobattleInputEnemy[], spd: number): 
     dots: [],
     maxToughness,
     toughness: [...maxToughness],
+    weaknesses: enemies.map((e) => e.weaknesses),
     brokenForEnemyTurns: enemies.map(() => undefined),
   }
 }

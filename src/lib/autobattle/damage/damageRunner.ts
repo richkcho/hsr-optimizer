@@ -1,5 +1,6 @@
 import type { ActorId, BattleState, SlotIndex } from 'lib/autobattle/types'
 import { serializeActorId } from 'lib/autobattle/types'
+import type { ElementName } from 'lib/constants/constants'
 import { applyTeamBuffsForActor } from 'lib/autobattle/damage/teamBuffApplier'
 import type { SlotResolverState } from 'lib/autobattle/damage/contextBuilder'
 import { calculateBaseMultis } from 'lib/optimization/calculateDamage'
@@ -21,6 +22,12 @@ export interface AbilityResolution {
   // Sum of hit.toughnessDmg across the action's recorded hits. Fed into the scheduler's
   // break detection — only the breaking attack is credited with break damage.
   toughnessDmg: number
+  // The action's primary element. Drawn from the character's element on the resolver's
+  // context (per-hit damageElement is bit-encoded as ElementTag; for single-element
+  // characters — the v1 scope — they match). Used by the scheduler to gate toughness
+  // decrements on enemy weakness lists, and (in #8) to pick the break-effect DoT element.
+  // Multi-element single-hit abilities are out of scope for v1.
+  element?: ElementName
   // Damage attributed to a different slot (DoT applier) or via a different ability kind.
   // Phase C leaves empty — Phase D+ may split memo-entity damage into a separate ledger entry.
   attributions?: { actor: ActorId; kind: AbilityKind; dmg: number }[]
@@ -59,7 +66,9 @@ export function createRealDamageResolver(opts: CreateRealResolverOptions): Damag
       if (!action || !action.hits) return { totalDmg: 0, perHit: [], toughnessDmg: 0 }
 
       runActionPipeline(state, actor, action, slotState)
-      return collectActionDamage(action.hits, action, slotState)
+      const resolution = collectActionDamage(action.hits, action, slotState)
+      resolution.element = slotState.context.element
+      return resolution
     },
     resolveHit(state, applierSlot, kind, hitIndex) {
       const slotState = opts.slotStates[applierSlot]
@@ -120,7 +129,11 @@ function computeBreakDamage(slotState: SlotResolverState, enemyMaxToughness?: nu
 // Re-export mock for tests that need it (e.g. avQueue/scheduler unit tests).
 export function createMockDamageResolver(
   perKind?: Partial<Record<AbilityKind, number>>,
-  options?: { toughnessDmgPerHit?: Partial<Record<AbilityKind, number>>; breakDmg?: number },
+  options?: {
+    toughnessDmgPerHit?: Partial<Record<AbilityKind, number>>
+    breakDmg?: number
+    element?: ElementName
+  },
 ): DamageResolver {
   const defaults: Partial<Record<AbilityKind, number>> = {
     BASIC: 100,
@@ -131,11 +144,12 @@ export function createMockDamageResolver(
   const map = { ...defaults, ...perKind }
   const toughnessMap = options?.toughnessDmgPerHit ?? {}
   const breakDmg = options?.breakDmg ?? 0
+  const element = options?.element
   return {
     resolve(_state, _actor, kind) {
       const dmg = map[kind] ?? 0
       const toughnessDmg = toughnessMap[kind] ?? 0
-      return { totalDmg: dmg, perHit: [dmg], toughnessDmg }
+      return { totalDmg: dmg, perHit: [dmg], toughnessDmg, element }
     },
     resolveBreak(_state, _applierSlot, _enemyMaxToughness) {
       return breakDmg

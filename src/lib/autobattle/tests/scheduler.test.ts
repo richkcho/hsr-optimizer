@@ -210,6 +210,43 @@ describe('break damage', () => {
     const firstBreakIdx = result.log.findIndex((e) => e.kind === 'BREAK')
     expect(firstBreakIdx).toBe(firstSkillIdx + 1)
   })
+
+  test('off-element hit does not reduce toughness on an enemy with a specific weakness list', () => {
+    // Enemy weak only to Ice; attacker mock resolves all hits as Fire. Even with totalAv high
+    // enough that toughness would normally hit zero many times over, no break should fire.
+    const fireResolver = createMockDamageResolver(
+      { BASIC: 50, SKILL: 100, ULT: 500 },
+      { toughnessDmgPerHit: { BASIC: 60, SKILL: 30 }, breakDmg: 2000, element: 'Fire' },
+    )
+    const result = runAutobattle(
+      makeInput(
+        [makeMember(0, 100, 9999)],
+        { totalAv: 600, enemySpd: 10, enemies: [{ maxToughness: 100, weaknesses: ['Ice'] }] },
+      ),
+      { resolver: fireResolver },
+    )
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBe(0)
+    expect(result.ledger.byActorBySource['0:primary']?.BREAK ?? 0).toBe(0)
+  })
+
+  test('on-element hit reduces toughness and triggers break on a weakness-listed enemy', () => {
+    // Same setup as the off-element test, but the enemy is weak to Fire — break should fire.
+    const fireResolver = createMockDamageResolver(
+      { BASIC: 50, SKILL: 100, ULT: 500 },
+      { toughnessDmgPerHit: { BASIC: 60, SKILL: 30 }, breakDmg: 2000, element: 'Fire' },
+    )
+    const result = runAutobattle(
+      makeInput(
+        [makeMember(0, 100, 9999)],
+        { totalAv: 600, enemySpd: 10, enemies: [{ maxToughness: 100, weaknesses: ['Fire', 'Ice'] }] },
+      ),
+      { resolver: fireResolver },
+    )
+    const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breakLogEntries.length).toBeGreaterThan(0)
+    expect(result.ledger.byActorBySource['0:primary']?.BREAK ?? 0).toBeGreaterThan(0)
+  })
 })
 
 describe('FUA trigger gating: requiresSourceBuff', () => {

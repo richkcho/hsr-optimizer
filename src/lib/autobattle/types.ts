@@ -1,4 +1,4 @@
-import type { Parts, PathName } from 'lib/constants/constants'
+import type { ElementName, Parts, PathName } from 'lib/constants/constants'
 import type { StatKeyValue } from 'lib/optimization/engine/config/keys'
 import type { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
@@ -88,9 +88,12 @@ export interface EnemyState {
   // Per-enemy toughness/break state. All arrays have length === count.
   // Each ability decrements only its target enemy's gauge (or each, for AoE), and
   // break credits the breaker once per broken enemy using that enemy's maxToughness.
-  // Weakness/element tracking is deferred — every hit currently reduces toughness.
   maxToughness: number[]
   toughness: number[]
+  // Per-enemy element weakness lists. `undefined` / empty means "weak to all" (the
+  // pre-routing default — every hit reduces toughness). A non-empty list gates the
+  // toughness decrement on the breaking ability's element matching one entry.
+  weaknesses: (ElementName[] | undefined)[]
   // Countdown in enemy clock cycles per enemy. Set to 1 on break, decremented in
   // processEnemyTurn; when 0 the broken state ends and toughness restores to maxToughness.
   // `undefined` at a given index means that enemy is not currently broken.
@@ -207,9 +210,12 @@ export interface TeamMemberInput {
 
 export interface AutobattleInputEnemy {
   // Per-enemy toughness gauge for break detection. Standard elites run 100; bosses run
-  // 120–240. Per-element weakness lists will live alongside this once weakness routing
-  // lands (issue tracks v1.5).
+  // 120–240.
   maxToughness: number
+  // Element weaknesses. Omitted / empty → weak to every element (preserves the pre-routing
+  // default used by goldens captured with `weaknessOverrides: All`). When populated, only
+  // hits whose primary element is in the list will reduce this enemy's toughness gauge.
+  weaknesses?: ElementName[]
 }
 
 export interface AutobattleInput {
