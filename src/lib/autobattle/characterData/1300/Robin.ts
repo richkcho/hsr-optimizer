@@ -22,6 +22,16 @@ const CONCERTO_COUNTDOWN_SPD = 90
 const CONCERTO_DURATION_AV = 10000 / CONCERTO_COUNTDOWN_SPD
 
 export const RobinData: CharacterData = {
+  // Skill base 30 energy + Sequential Passage trace +5. Trace text:
+  // "When using Skill, additionally regenerates 5 Energy."
+  energyOnAction: {
+    [AbilityKind.SKILL]: 35,
+  },
+  // Coloratura Cadenza trace: "When the battle begins, action advances this character by 25%."
+  battleStartAvAdvance: 0.25,
+  // Technique "Overture of Inebriation" (dimension-type) — listener gives +5 energy on
+  // WaveStart in reference. Subject to ERR scaling like in-combat gains.
+  battleStartBonusEnergy: 5,
   grantsAdvanceOnAction: {
     [AbilityKind.ULT]: { target: 'allAllies', avPercent: 100 },
   },

@@ -7,6 +7,11 @@ import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 // His FUA fires on ally crit but we model it as a teammate-attack trigger for simplicity —
 // the trigger system has no crit notion in v1.
 export const AventurineData: CharacterData = {
+  // FUA energy: reference attackWrapper iterates 7 bounces, each granting bounceData.energy=1
+  // (per the talent's energyRegen=1 × bounceCount=7). Override the default FUA=5.
+  energyOnAction: {
+    [AbilityKind.FUA]: 7,
+  },
   fuaTriggers: [
     {
       id: 'aventurine.allyCrit',

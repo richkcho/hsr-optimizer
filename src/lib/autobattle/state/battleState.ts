@@ -7,7 +7,7 @@ import {
 import { avFromSpd, createClock } from 'lib/autobattle/scheduler/avQueue'
 import { createEnemyState } from 'lib/autobattle/state/enemy'
 import { createLedger } from 'lib/autobattle/state/ledger'
-import { createResourceState } from 'lib/autobattle/state/resources'
+import { changeEnergy, createResourceState } from 'lib/autobattle/state/resources'
 import { resolveTendency } from 'lib/autobattle/tendencies/tendencyRegistry'
 import {
   type ActorClock,
@@ -64,7 +64,14 @@ export function createInitialBattleState(
     members[inputMember.slot] = member
 
     // Primary clock at baseSpd. Memo clocks per characterData.memo.spdSource.
-    clocks.push(createClock(actors[0], inputMember.baseSpd))
+    const primaryClock = createClock(actors[0], inputMember.baseSpd)
+    // Battle-start AV advance traces (e.g. Robin's Coloratura Cadenza, +25%). Applied before
+    // any tick; clamps at 0 for >=100% advance (the unit acts on the first scheduler loop).
+    if (characterData.battleStartAvAdvance) {
+      const delta = characterData.battleStartAvAdvance * primaryClock.remainingAv
+      primaryClock.remainingAv = Math.max(0, primaryClock.remainingAv - delta)
+    }
+    clocks.push(primaryClock)
     if (characterData.memo && actors[1]) {
       const memoSpd = computeMemoSpd(member)
       clocks.push(createClock(actors[1], memoSpd))
@@ -111,6 +118,15 @@ export function createInitialBattleState(
     log: [],
     contexts,
     preBuiltActions,
+  }
+
+  // Battle-start bonus energy (technique-style grants). Applied via changeEnergy so ERR
+  // scaling matches in-combat gains.
+  for (const slot of (Object.keys(members) as unknown as SlotIndex[])) {
+    const member = members[slot]
+    if (!member) continue
+    const bonus = member.characterData.battleStartBonusEnergy
+    if (bonus) changeEnergy(state.resources, member, bonus)
   }
 
   return { state, slotResolvers }

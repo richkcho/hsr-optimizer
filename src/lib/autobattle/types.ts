@@ -330,6 +330,17 @@ export interface CharacterData {
   // (BASIC/SKILL/ULT/FUA); DOT, BREAK, UNIQUE/Additional don't count as attacks.
   energyPassiveOnAnyAttack?: Partial<Record<AbilityKind, number>>
 
+  // Battle-start AV advance applied once at sim-init, before the first clock tick. Expressed
+  // as a fraction of the unit's base AV (0.25 = 25% of 10000/baseSpd). Models traces like
+  // Robin's "Coloratura Cadenza" ("When the battle begins, action advances this character by
+  // 25%"). Affects the primary clock only.
+  battleStartAvAdvance?: number
+
+  // Bonus raw energy applied once at sim-init, after the default starting-energy roll, subject
+  // to standard ERR scaling via changeEnergy. Models technique-style WaveStart energy grants
+  // (e.g. Robin's "Overture of Inebriation" technique: +5 energy on wave start).
+  battleStartBonusEnergy?: number
+
   // v1 approximation flags for mechanics we don't fully simulate.
   v1Approx?: {
     // For Aventurine/Clara/Fu Xuan/March 7th: enemies don't attack, so we

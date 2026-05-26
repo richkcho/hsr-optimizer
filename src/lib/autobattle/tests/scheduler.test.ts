@@ -340,10 +340,13 @@ describe('clock pause: clockPausedByBuff', () => {
     )
 
     const robinActions = result.log.filter((e) => `${e.actor.slot}` === '1')
-    const robinBasics = robinActions.filter((e) => e.kind === AbilityKind.BASIC).length
+    // Robin's tendency prefers SKILL when SP available, falling back to BASIC otherwise. With
+    // the default 5 SP at battle start she fires SKILL once, which fills her energy (small
+    // maxEnergy=20) and triggers the out-of-turn ult; Concerto then pauses her for ~111 AV.
+    const robinTurnActions = robinActions.filter((e) => e.kind === AbilityKind.BASIC || e.kind === AbilityKind.SKILL).length
     const robinUlts = robinActions.filter((e) => e.kind === AbilityKind.ULT).length
-    // Exactly one basic and one ult — no further actions while frozen.
-    expect(robinBasics).toBe(1)
+    // Exactly one turn action and one ult — no further actions while frozen.
+    expect(robinTurnActions).toBe(1)
     expect(robinUlts).toBe(1)
   })
 
@@ -358,29 +361,33 @@ describe('clock pause: clockPausedByBuff', () => {
       { resolver: mockResolver() },
     )
 
-    // First Robin basic at AV ~100, ult immediately after, Concerto till AV ~211.
-    // With totalAv=130 we end mid-Concerto: still expect 1 basic + 1 ult, no resumption yet.
+    // Robin acts early (battle-start AV advance from Coloratura Cadenza), ults immediately,
+    // then Concerto pauses her. With totalAv=130 we end mid-Concerto: still expect 1 turn
+    // action + 1 ult, no resumption yet.
     const robinActionsShort = result.log.filter((e) => `${e.actor.slot}` === '1' && e.kind !== AbilityKind.UNIQUE)
     expect(robinActionsShort.length).toBe(2)
 
-    // Longer window: Robin's clock reset to 0 on Concerto expire, so a second basic fires.
+    // Longer window: Robin's clock reset to 0 on Concerto expire, so a second turn-action fires.
     const longResult = runAutobattle(
       makeInput([teammate, robin], { totalAv: 230, enemySpd: 10 }),
       { resolver: mockResolver() },
     )
-    const robinBasicsLong = longResult.log.filter((e) => `${e.actor.slot}` === '1' && e.kind === AbilityKind.BASIC).length
-    expect(robinBasicsLong).toBeGreaterThanOrEqual(2)
+    const robinTurnActionsLong = longResult.log.filter((e) => `${e.actor.slot}` === '1'
+      && (e.kind === AbilityKind.BASIC || e.kind === AbilityKind.SKILL)).length
+    expect(robinTurnActionsLong).toBeGreaterThanOrEqual(2)
   })
 
   test('paused Robin does not accrue energy from basics (no phantom ult chain)', () => {
-    // Without the pause, Robin would keep basicing during Concerto, refilling energy and
+    // Without the pause, Robin would keep acting during Concerto, refilling energy and
     // potentially ulting again as soon as Concerto ends. With pause, her energy stays at
-    // post-ult-refund level until she un-pauses and resumes basicing.
+    // post-ult-refund level until she un-pauses and resumes. totalAv chosen to end mid-
+    // Concerto (battle-start advance puts her first action at ~75 AV, Concerto then runs
+    // until ~186 AV).
     const robin: TeamMemberInput = { ...makeMember(1, 100, 20), characterId: '1309' as CharacterId }
     const teammate = makeMember(0, 100, 9999)
 
     const result = runAutobattle(
-      makeInput([teammate, robin], { totalAv: 200, enemySpd: 10 }),
+      makeInput([teammate, robin], { totalAv: 150, enemySpd: 10 }),
       { resolver: mockResolver() },
     )
     // Exactly one ult: she ults, gets frozen, can't act again within 111 AV window.

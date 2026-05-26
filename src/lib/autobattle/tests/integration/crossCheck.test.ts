@@ -12,6 +12,8 @@ import type {
 } from 'lib/autobattle/battleRecord'
 import { toBattleRecordOutcome } from 'lib/autobattle/battleRecordAdapter'
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
+import { buildPlaceholderCharacter } from 'lib/autobattle/tests/integration/fixtures/buildFixtures'
+import { loadEquippedRelics } from 'lib/autobattle/tests/integration/fixtureLoader'
 import type {
   ActorKind,
   AutobattleInput,
@@ -20,18 +22,11 @@ import type {
 } from 'lib/autobattle/types'
 import {
   type MainStats,
-  Parts,
   Sets,
   Stats,
-  type StatsValues,
-  type SubStats,
 } from 'lib/constants/constants'
-import { BasicStatToKey } from 'lib/optimization/basicStatsArray'
 import type { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
-import { StatCalculator } from 'lib/relics/statCalculator'
-import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
 import { Metadata } from 'lib/state/metadataInitializer'
-import { isFlat } from 'lib/utils/statUtils'
 import type { CharacterId } from 'types/character'
 import type { LightConeId } from 'types/lightCone'
 import { describe, expect, test } from 'vitest'
@@ -102,46 +97,24 @@ interface GoldenFile {
 // Input builder
 // ---------------------------------------------------------------------------
 
-const STANDARD_ROLLS: Partial<Record<SubStats, number>> = {
-  [Stats.ATK_P]: 10,
-  [Stats.SPD]: 10,
-  [Stats.CR]: 10,
-  [Stats.CD]: 10,
-  [Stats.EHR]: 10,
-  [Stats.RES]: 10,
-  [Stats.BE]: 10,
-}
-
-function makeRelic(set: Sets, main: MainStats): SimulationRelic {
-  const mainKey = BasicStatToKey[main as StatsValues]
-  const mainValue = StatCalculator.getMaxedStatValue(main) * (isFlat(main) ? 1 : 0.01)
-  return { set, condensedStats: [[mainKey, mainValue]] }
-}
-
-function withSubstatRolls(relic: SimulationRelic, rolls: Partial<Record<SubStats, number>>): SimulationRelic {
-  const condensed = [...relic.condensedStats!]
-  for (const [stat, count] of Object.entries(rolls)) {
-    if (!count) continue
-    const key = BasicStatToKey[stat as StatsValues]
-    const perRoll = StatCalculator.getMaxedSubstatValue(stat as SubStats)
-    const scale = isFlat(stat as StatsValues) ? 1 : 0.01
-    condensed.push([key, perRoll * count * scale])
-  }
-  return { set: relic.set, condensedStats: condensed }
-}
-
-function buildEquippedRelics(m: GoldenMember): Partial<Record<Parts, SimulationRelic>> {
-  const set1 = Sets[m.relicSet1] as Sets
-  const set2 = Sets[m.relicSet2] as Sets
-  const orn = Sets[m.ornamentSet] as Sets
-  return {
-    [Parts.Head]: withSubstatRolls(makeRelic(set1, Stats.HP), STANDARD_ROLLS),
-    [Parts.Hands]: makeRelic(set1, Stats.ATK),
-    [Parts.Body]: makeRelic(set2, Stats[m.mains.body] as MainStats),
-    [Parts.Feet]: makeRelic(set2, Stats[m.mains.feet] as MainStats),
-    [Parts.PlanarSphere]: makeRelic(orn, Stats[m.mains.planarSphere] as MainStats),
-    [Parts.LinkRope]: makeRelic(orn, Stats[m.mains.linkRope] as MainStats),
-  }
+// Each golden team entry documents the player's actual gear (sets + main stats). We feed
+// that into `buildPlaceholderCharacter`, which synthesizes realistic substat distributions
+// (≤ 6 rolls per substat per relic, ~10 priority-substat rolls per character) and routes
+// through `RelicAugmenter.augment` + `relicToSimulationRelic` — the same pipeline the live
+// importer flow uses. Future scenarios can swap the placeholder out for a real Kel-Z dump.
+function buildEquippedRelicsFor(m: GoldenMember) {
+  return loadEquippedRelics(buildPlaceholderCharacter({
+    characterId: m.characterId,
+    relicSet1: Sets[m.relicSet1] as Sets,
+    relicSet2: Sets[m.relicSet2] as Sets,
+    ornamentSet: Sets[m.ornamentSet] as Sets,
+    mains: {
+      body: Stats[m.mains.body] as MainStats,
+      feet: Stats[m.mains.feet] as MainStats,
+      planarSphere: Stats[m.mains.planarSphere] as MainStats,
+      linkRope: Stats[m.mains.linkRope] as MainStats,
+    },
+  }))
 }
 
 function buildInput(golden: GoldenFile): AutobattleInput {
@@ -152,7 +125,7 @@ function buildInput(golden: GoldenFile): AutobattleInput {
       eidolon: m.eidolon as TeamMemberInput['eidolon'],
       lightConeId: m.lightConeId as LightConeId,
       lightConeSuperimposition: m.lightConeSuperimposition,
-      equippedRelics: buildEquippedRelics(m),
+      equippedRelics: buildEquippedRelicsFor(m),
       baseSpd: m.baseSpd,
       maxEnergy: m.maxEnergy,
       path: m.path,

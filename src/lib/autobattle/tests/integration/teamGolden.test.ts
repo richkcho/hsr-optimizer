@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
+import { buildPlaceholderCharacter } from 'lib/autobattle/tests/integration/fixtures/buildFixtures'
+import { loadEquippedRelics } from 'lib/autobattle/tests/integration/fixtureLoader'
 import type {
   AutobattleInput,
   SlotIndex,
@@ -7,30 +9,15 @@ import type {
 } from 'lib/autobattle/types'
 import {
   type MainStats,
-  Parts,
   Sets,
   Stats,
-  type StatsValues,
-  type SubStats,
 } from 'lib/constants/constants'
-import { BasicStatToKey } from 'lib/optimization/basicStatsArray'
-import { StatCalculator } from 'lib/relics/statCalculator'
-import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
 import { Metadata } from 'lib/state/metadataInitializer'
-import { isFlat } from 'lib/utils/statUtils'
 import type { CharacterId } from 'types/character'
 import type { LightConeId } from 'types/lightCone'
 import { describe, expect, test } from 'vitest'
 
 Metadata.initialize()
-
-// Per-character relic main stats (mirrors stat sim test fixtures: ATK% / SPD / element / ATK%).
-type RelicMains = {
-  body: MainStats
-  feet: MainStats
-  planarSphere: MainStats
-  linkRope: MainStats
-}
 
 interface MemberFixture {
   slot: SlotIndex
@@ -44,76 +31,35 @@ interface MemberFixture {
   relicSet1: Sets
   relicSet2: Sets
   ornamentSet: Sets
-  mains: RelicMains
-  substatRollsBySub: Partial<Record<SubStats, number>>
-}
-
-// Builds a SimulationRelic with the given set + main stat + substats. Substat rolls are turned
-// into stat values via StatCalculator. The body relic carries the substat rolls (matching the
-// pattern in lib/simulations/tests/simTestUtils.ts:294-313).
-function makeRelic(set: Sets, main: MainStats): SimulationRelic {
-  const mainKey = BasicStatToKey[main as StatsValues]
-  const mainValue = StatCalculator.getMaxedStatValue(main) * (isFlat(main) ? 1 : 0.01)
-  return { set, condensedStats: [[mainKey, mainValue]] }
-}
-
-function withSubstatRolls(
-  relic: SimulationRelic,
-  rolls: Partial<Record<SubStats, number>>,
-): SimulationRelic {
-  const condensed = [...relic.condensedStats!]
-  for (const [stat, count] of Object.entries(rolls)) {
-    if (!count) continue
-    const key = BasicStatToKey[stat as StatsValues]
-    const perRoll = StatCalculator.getMaxedSubstatValue(stat as SubStats)
-    const scale = isFlat(stat as StatsValues) ? 1 : 0.01
-    condensed.push([key, perRoll * count * scale])
-  }
-  return { set: relic.set, condensedStats: condensed }
-}
-
-function relicsFor(fixture: MemberFixture): Partial<Record<Parts, SimulationRelic>> {
-  return {
-    [Parts.Head]: withSubstatRolls(makeRelic(fixture.relicSet1, Stats.HP), fixture.substatRollsBySub),
-    [Parts.Hands]: makeRelic(fixture.relicSet1, Stats.ATK),
-    [Parts.Body]: makeRelic(fixture.relicSet2, fixture.mains.body),
-    [Parts.Feet]: makeRelic(fixture.relicSet2, fixture.mains.feet),
-    [Parts.PlanarSphere]: makeRelic(fixture.ornamentSet, fixture.mains.planarSphere),
-    [Parts.LinkRope]: makeRelic(fixture.ornamentSet, fixture.mains.linkRope),
-  }
+  mains: { body: MainStats; feet: MainStats; planarSphere: MainStats; linkRope: MainStats }
 }
 
 function memberInput(fixture: MemberFixture): TeamMemberInput {
+  // Relics are synthesized by buildPlaceholderCharacter (realistic per-relic substat counts)
+  // and routed through the same RelicAugmenter + relicToSimulationRelic path the live UI
+  // uses. Future scenarios can swap the placeholder for a real Kel-Z dump.
+  const build = buildPlaceholderCharacter({
+    characterId: fixture.characterId,
+    relicSet1: fixture.relicSet1,
+    relicSet2: fixture.relicSet2,
+    ornamentSet: fixture.ornamentSet,
+    mains: fixture.mains,
+  })
   return {
     slot: fixture.slot,
     characterId: fixture.characterId,
     eidolon: fixture.eidolon as TeamMemberInput['eidolon'],
     lightConeId: fixture.lightConeId,
     lightConeSuperimposition: fixture.lightConeSuperimposition,
-    equippedRelics: relicsFor(fixture),
+    equippedRelics: loadEquippedRelics(build),
     baseSpd: fixture.baseSpd,
     maxEnergy: fixture.maxEnergy,
     path: fixture.path,
   }
 }
 
-const STANDARD_ROLLS: Partial<Record<SubStats, number>> = {
-  [Stats.ATK_P]: 10,
-  [Stats.HP_P]: 0,
-  [Stats.DEF_P]: 0,
-  [Stats.HP]: 0,
-  [Stats.ATK]: 0,
-  [Stats.DEF]: 0,
-  [Stats.SPD]: 10,
-  [Stats.CR]: 10,
-  [Stats.CD]: 10,
-  [Stats.EHR]: 10,
-  [Stats.RES]: 10,
-  [Stats.BE]: 10,
-}
-
 // Test team: Feixiao (DPS) / Robin (buffer) / Sparkle (SP-positive) / Aventurine (sustain).
-// Numbers chosen for plausible mid-game-ish relic stats. Goldens are frozen on first run.
+// Sets + main stats reflect plausible mid-game canonical builds; substats are placeholder.
 const TEAM: MemberFixture[] = [
   {
     slot: 0,
@@ -128,7 +74,6 @@ const TEAM: MemberFixture[] = [
     relicSet2: Sets.TheWindSoaringValorous,
     ornamentSet: Sets.DuranDynastyOfRunningWolves,
     mains: { body: Stats.CD, feet: Stats.ATK_P, planarSphere: Stats.Wind_DMG, linkRope: Stats.ATK_P },
-    substatRollsBySub: STANDARD_ROLLS,
   },
   {
     slot: 1,
@@ -143,7 +88,6 @@ const TEAM: MemberFixture[] = [
     relicSet2: Sets.MusketeerOfWildWheat,
     ornamentSet: Sets.SprightlyVonwacq,
     mains: { body: Stats.ATK_P, feet: Stats.SPD, planarSphere: Stats.ATK_P, linkRope: Stats.ERR },
-    substatRollsBySub: STANDARD_ROLLS,
   },
   {
     slot: 2,
@@ -158,7 +102,6 @@ const TEAM: MemberFixture[] = [
     relicSet2: Sets.MusketeerOfWildWheat,
     ornamentSet: Sets.SprightlyVonwacq,
     mains: { body: Stats.CD, feet: Stats.SPD, planarSphere: Stats.HP_P, linkRope: Stats.ERR },
-    substatRollsBySub: STANDARD_ROLLS,
   },
   {
     slot: 3,
@@ -173,7 +116,6 @@ const TEAM: MemberFixture[] = [
     relicSet2: Sets.KnightOfPurityPalace,
     ornamentSet: Sets.BrokenKeel,
     mains: { body: Stats.DEF_P, feet: Stats.DEF_P, planarSphere: Stats.DEF_P, linkRope: Stats.ERR },
-    substatRollsBySub: STANDARD_ROLLS,
   },
 ]
 
@@ -187,23 +129,23 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after wiring Robin's Talent passive energy
-// ("Tonal Resonance": +2 Energy per non-enemy attack, including her own). Robin now ults
-// more often (her ult cadence is energy-bound and Talent gives ~2/teammate-attack × ERR),
-// re-opening more Concerto windows. Robin UNIQUE jumps 727k → 1158k. Other actors mostly
-// unchanged. Team total 19.51M → 20.30M (+4.1%).
+// Golden refrozen on 2026-05-25 after migrating to buildPlaceholderCharacter (realistic
+// per-relic substat distribution + properly-scaled main stats). Total team damage rose
+// substantially because percent main stats now contribute correctly (previously they were
+// silently scaled by 0.01 in the makeRelic helper, dropping ~100% of their value).
+// Team total 21.7M → 31.5M (+45%) — driven by mains correctly flowing through to ATK/CR/CD.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 20304639,
-  feixiaoTotal: 16809253,
-  feixiaoFua: 4328636,
-  feixiaoUlt: 8590339,
-  feixiaoBreak: 162602,
-  robinTotal: 1654910,
-  robinUnique: 1157655,
-  sparkleTotal: 433512,
-  aventurineTotal: 1406964,
+  grandTotal: 31540864,
+  feixiaoTotal: 24382507,
+  feixiaoFua: 5982967,
+  feixiaoUlt: 13018076,
+  feixiaoBreak: 110464,
+  robinTotal: 2914371,
+  robinUnique: 2914371,
+  sparkleTotal: 275232,
+  aventurineTotal: 3968754,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {
