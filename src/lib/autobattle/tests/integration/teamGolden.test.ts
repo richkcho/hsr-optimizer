@@ -129,30 +129,24 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after Robin/Aventurine tendency refinements:
-//   - Robin: skill only when Pinion's Aria buff is down (turnsOnSource: 3); basic otherwise
-//     to preserve SP for the team's DPS. Shifts her from ~all-skill to ~1/3 skill cadence.
-//   - Aventurine: skill only when Aventurine.shield buff is down (turnsOnSource: 3); basic
-//     otherwise. The buff refreshes on both his skill and ult, so ult-cycle uptime keeps
-//     him at near-zero skill use after the opening turn.
-// Per-character deltas vs the prior pre-tendency-change golden:
-//   - Feixiao total: 24.4M → 22.5M (-8%). She gets fewer Robin-Concerto advances since
-//     Robin ults less frequently when she's mixing in basics.
-//   - Robin total: 2.91M → 2.14M (-27%). Fewer ult cycles → fewer UNIQUE Concerto fires.
-//   - Aventurine total: 3.80M → 3.22M (-15%). One fewer ult per the cascade above.
-//   - Sparkle within ±3%.
+// Golden refrozen on 2026-05-25 after the scheduler started initializing clocks from
+// effective SPD (snapshot via the optimizer pipeline at sim-init, capturing relic main+sub
+// + traces + LC + always-on conditional bonuses) instead of intrinsic baseSpd. Every actor
+// now takes more turns over the same 6000 AV window — net team total drifts ~1.2% from the
+// prior frozen values, mostly redistribution between ULT and FUA buckets as Feixiao ults
+// slightly less per turn but lands more total turns.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 28100970,
-  feixiaoTotal: 22465272,
+  grandTotal: 27751498,
+  feixiaoTotal: 22081626,
   feixiaoFua: 5519999,
-  feixiaoUlt: 11610716,
-  feixiaoBreak: 117068,
-  robinTotal: 2137094,
+  feixiaoUlt: 11258877,
+  feixiaoBreak: 112019,
+  robinTotal: 2103941,
   robinUnique: 1754570,
-  sparkleTotal: 279998,
-  aventurineTotal: 3218604,
+  sparkleTotal: 277236,
+  aventurineTotal: 3288694,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

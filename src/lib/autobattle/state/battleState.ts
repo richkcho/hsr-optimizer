@@ -36,6 +36,23 @@ export function createInitialBattleState(
   const members = {} as Record<SlotIndex, TeamMember>
   const clocks: ActorClock[] = []
 
+  // Resolver state requires Metadata.initialize() to have been called. Tests that exercise
+  // only the scheduler (with the mock resolver) can opt out by passing buildResolvers: false.
+  const buildResolvers = options?.buildResolvers ?? false
+  const contexts = {} as BattleState['contexts']
+  const preBuiltActions = {} as BattleState['preBuiltActions']
+  let slotResolvers: Partial<Record<SlotIndex, SlotResolverState>> = {}
+  if (buildResolvers) {
+    const built = buildSlotResolvers(input)
+    slotResolvers = built.states
+    for (const slot of Object.keys(slotResolvers) as unknown as SlotIndex[]) {
+      const slotState = slotResolvers[slot]
+      if (!slotState) continue
+      contexts[slot] = slotState.context
+      Object.assign(preBuiltActions, buildPreBuiltActionsForSlot({ slot, kind: 'primary' }, slotState.context))
+    }
+  }
+
   for (const inputMember of input.team) {
     const characterData = resolveCharacterData(inputMember.characterId)
     const tendency = resolveTendency(inputMember.characterId, inputMember.path)
@@ -43,6 +60,14 @@ export function createInitialBattleState(
     if (characterData.memo) {
       actors.push({ slot: inputMember.slot, kind: 'memo', entityName: characterData.memo.entityName })
     }
+
+    // Snapshot stats from the resolver pipeline — captures relic main+sub + traces + LC +
+    // always-on conditional bonuses. Mock-resolver tests (buildResolvers=false) fall back
+    // to baseSpd and errPercent=0 since they don't exercise gear-accurate timing.
+    const slotState = slotResolvers[inputMember.slot]
+    const snap = slotState ? snapshotMemberStats(slotState, preBuiltActions, inputMember.slot) : null
+    const errPercent = snap?.err ?? 0
+    const effectiveSpd = snap?.spd ?? inputMember.baseSpd
 
     const member: TeamMember = {
       slot: inputMember.slot,
@@ -54,17 +79,16 @@ export function createInitialBattleState(
       path: inputMember.path,
       maxEnergy: inputMember.maxEnergy,
       baseSpd: inputMember.baseSpd,
-      // Filled in below once the slot's resolver state is primed (buildResolvers=true).
-      // Mock-resolver tests leave this at 0; they don't exercise ERR-accurate timing.
-      errPercent: 0,
+      errPercent,
       tendency,
       characterData,
       actors,
     }
     members[inputMember.slot] = member
 
-    // Primary clock at baseSpd. Memo clocks per characterData.memo.spdSource.
-    const primaryClock = createClock(actors[0], inputMember.baseSpd)
+    // Primary clock at effective SPD (snapshotted with all gear/buff bonuses). Memo clocks
+    // per characterData.memo.spdSource — fromOwnerSpd variants ride on the same effective SPD.
+    const primaryClock = createClock(actors[0], effectiveSpd)
     // Battle-start AV advance traces (e.g. Robin's Coloratura Cadenza, +25%). Applied before
     // any tick; clamps at 0 for >=100% advance (the unit acts on the first scheduler loop).
     if (characterData.battleStartAvAdvance) {
@@ -73,36 +97,9 @@ export function createInitialBattleState(
     }
     clocks.push(primaryClock)
     if (characterData.memo && actors[1]) {
-      const memoSpd = computeMemoSpd(member)
+      const memoSpd = computeMemoSpd(member, effectiveSpd)
       member.memoSpd = memoSpd
       clocks.push(createClock(actors[1], memoSpd))
-    }
-  }
-
-  // Resolver state requires Metadata.initialize() to have been called. Tests that exercise
-  // only the scheduler (with the mock resolver) can opt out by passing buildResolvers: false.
-  const buildResolvers = options?.buildResolvers ?? false
-  const contexts = {} as BattleState['contexts']
-  const preBuiltActions = {} as BattleState['preBuiltActions']
-  let slotResolvers: Partial<Record<SlotIndex, SlotResolverState>> = {}
-
-  if (buildResolvers) {
-    const built = buildSlotResolvers(input)
-    slotResolvers = built.states
-    for (const slot of Object.keys(slotResolvers) as unknown as SlotIndex[]) {
-      const slotState = slotResolvers[slot]
-      if (!slotState) continue
-      contexts[slot] = slotState.context
-      Object.assign(preBuiltActions, buildPreBuiltActionsForSlot({ slot, kind: 'primary' }, slotState.context))
-
-      // Snapshot ERR once per slot. Runs the stat-only portion of the resolver pipeline
-      // against the slot's BASIC action (any action would do — ERR is action-level, same
-      // value across abilities of the same character). Mirrors damageRunner.runActionPipeline
-      // minus the hit-damage compute step.
-      const member = members[slot]
-      if (member) {
-        member.errPercent = snapshotErr(slotState, preBuiltActions, slot)
-      }
     }
   }
 
@@ -134,16 +131,17 @@ export function createInitialBattleState(
 }
 
 // Runs the stats-only portion of the damage pipeline on this slot's BASIC action so the
-// action-level ERR stat (relics + light cone + traces + always-on conditionals) populates
-// x.a. Returns ERR as a decimal (e.g. 0.30 for 30%). Returns 0 if no BASIC action exists.
-function snapshotErr(
+// action-level stats (relics + light cone + traces + always-on conditionals) populate x.a.
+// Returns the {err, spd} snapshot — ERR as a decimal (0.30 = 30%), SPD as the effective
+// post-gear value used to initialize the scheduler clock. Returns null if no BASIC action.
+function snapshotMemberStats(
   slotState: SlotResolverState,
   preBuiltActions: BattleState['preBuiltActions'],
   slot: SlotIndex,
-): number {
+): { err: number; spd: number } | null {
   const primaryKey = serializeActorId({ slot, kind: 'primary' })
   const action = preBuiltActions[primaryKey]?.[AbilityKind.BASIC]
-  if (!action) return 0
+  if (!action) return null
 
   const { x, context } = slotState
   x.clearRegisters()
@@ -151,21 +149,25 @@ function snapshotErr(
   x.setPrecompute(action.precomputedStats.a)
   calculateBasicEffects(x, action, context)
   calculateComputedStats(x, action, context)
-  return x.getSelfValue(StatKey.ERR)
+  return {
+    err: x.getSelfValue(StatKey.ERR),
+    spd: x.getSelfValue(StatKey.SPD),
+  }
 }
 
-// Memo SPD resolution: prefer explicit characterData.memo.entitySpd (e.g. Numby=80,
-// Netherwing=165) over the older 'entityDefinition' fallback. When entitySpd is unset and
-// the source is 'entityDefinition', we fall back to the owner's baseSpd as a coarse
-// approximation — slated to be replaced with a real EntityDefinition.memoBaseSpd{Flat,Scaling}
-// read once that data is plumbed through the OptimizerContext at scheduler-init time.
-// The { fromOwnerSpd } variant (Hyacine/Ica) works directly off member.baseSpd.
-function computeMemoSpd(member: TeamMember): number {
+// Memo SPD resolution: prefer explicit characterData.memo.entitySpd (Numby=80,
+// Netherwing=165) for entities with a fixed SPD baseline. The { fromOwnerSpd } variant
+// (Hyacine/Ica) inherits proportionally from the owner's effective SPD — passed in here
+// so the inheritance picks up gear/trace/LC bonuses rather than intrinsic baseSpd. When
+// entitySpd is unset and spdSource is 'entityDefinition', we fall back to the owner's
+// effective SPD as a coarse approximation until EntityDefinition.memoBaseSpd{Flat,Scaling}
+// is plumbed through OptimizerContext at scheduler-init time.
+function computeMemoSpd(member: TeamMember, ownerEffectiveSpd: number): number {
   const memo = member.characterData.memo
-  if (!memo) return member.baseSpd
+  if (!memo) return ownerEffectiveSpd
   if (memo.entitySpd !== undefined) return memo.entitySpd
-  if (memo.spdSource === 'entityDefinition') return member.baseSpd
-  return member.baseSpd * memo.spdSource.fromOwnerSpd
+  if (memo.spdSource === 'entityDefinition') return ownerEffectiveSpd
+  return ownerEffectiveSpd * memo.spdSource.fromOwnerSpd
 }
 
 export { avFromSpd }
