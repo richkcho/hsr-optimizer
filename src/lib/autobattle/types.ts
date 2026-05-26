@@ -109,7 +109,10 @@ export interface EnemyState {
 export interface ActiveDot {
   appliedBy: SlotIndex
   // Reference into the applier's preBuiltActions hits[] so we can re-run the DoT
-  // damage function on each enemy turn without rebuilding the hit.
+  // damage function on each enemy turn without rebuilding the hit. For break-effect
+  // DoTs (`breakDotKind` set) the hit template is a sentinel — the runtime computes
+  // damage inline via resolver.resolveBreakDot from the breaker's stat container
+  // rather than re-running a hit.
   hitTemplateRef: {
     ownerSlot: SlotIndex
     abilityKind: AbilityKind
@@ -117,6 +120,16 @@ export interface ActiveDot {
   }
   stacks: number
   remainingTurns: number  // decrements on each enemy turn
+
+  // Break-effect DoT (Burn/Shock/Bleed/Wind Shear/etc.) registered when this dot's
+  // applier broke the target enemy. The DoT is bound to a single enemy via
+  // targetEnemyIndex (per-enemy attribution) and carries the breaking hit's element
+  // for resistance/penetration calculations. v1 collapses per-element variants into
+  // one generic damage DoT — Freeze action-skip, Wind Shear stacking, Entanglement
+  // multi-hit scaling are unmodeled but tagged TODOs for v2.
+  breakDotKind?: 'generic'
+  targetEnemyIndex?: number
+  element?: ElementName
 }
 
 export type BuffTickMode = 'av' | 'turnsOnTarget' | 'turnsOnSource' | 'turnsOnEnemy'

@@ -22,10 +22,17 @@ export function tickEnemyClock(enemy: EnemyState, dt: number): void {
   for (let i = 0; i < enemy.clockAv.length; i++) enemy.clockAv[i] -= dt
 }
 
-// Called when an enemy's clock reaches 0. Resets that enemy's clock and decrements its
-// broken-state countdown (restoring full toughness on expiry). Shared DoTs tick on every
-// per-enemy turn (issue #10: "v1 ticks shared DoTs on every enemy turn") — per-enemy DoT
-// routing is v2 scope. Returns the dots that should fire this tick.
+// Called when an enemy's clock reaches 0. Resets that enemy's clock, ticks its broken-state
+// countdown (restoring full toughness on expiry), and advances DoT durations.
+//
+// DoT tick semantics:
+//   - Shared DoTs (no breakDotKind) tick on every per-enemy turn. v1 "applied-to-all"
+//     simplification — issue #10's "v1 ticks shared DoTs on every enemy turn."
+//   - Break-effect DoTs (breakDotKind set) tick only when their target enemy turns; a
+//     2-turn break DoT covers 2 of that specific enemy's turns regardless of N.
+//
+// Returns dots that should fire this tick — the scheduler filters per-target attribution
+// for break DoTs at the credit site.
 export function onEnemyTurn(enemy: EnemyState, enemyIndex: number): ActiveDot[] {
   enemy.clockAv[enemyIndex] = avFromSpd(enemy.spd[enemyIndex])
 
@@ -43,7 +50,10 @@ export function onEnemyTurn(enemy: EnemyState, enemyIndex: number): ActiveDot[] 
   }
 
   const firing = enemy.dots.filter((d) => d.remainingTurns > 0)
-  for (const d of enemy.dots) d.remainingTurns -= 1
+  for (const d of enemy.dots) {
+    if (d.breakDotKind !== undefined && d.targetEnemyIndex !== enemyIndex) continue
+    d.remainingTurns -= 1
+  }
   enemy.dots = enemy.dots.filter((d) => d.remainingTurns > 0)
   return firing
 }
@@ -57,17 +67,24 @@ export function breakActionDelayAv(enemy: EnemyState, enemyIndex: number): numbe
 }
 
 export function addOrRefreshDot(enemy: EnemyState, dot: ActiveDot): void {
-  // Same applier + same hit template → refresh duration and add stack (capped at 1 for v1).
-  const existing = enemy.dots.find((d) =>
-    d.appliedBy === dot.appliedBy
-    && d.hitTemplateRef.ownerSlot === dot.hitTemplateRef.ownerSlot
-    && d.hitTemplateRef.abilityKind === dot.hitTemplateRef.abilityKind
-    && d.hitTemplateRef.hitIndex === dot.hitTemplateRef.hitIndex
-  )
+  // Same source → refresh duration and stack. Source identity differs by DoT type:
+  // standard DoTs key on the hit template (applier + ownerSlot + abilityKind + hitIndex),
+  // break-effect DoTs key on the breaker + targetEnemyIndex (one per breaker per enemy).
+  const existing = enemy.dots.find((d) => isSameDotSource(d, dot))
   if (existing) {
     existing.remainingTurns = Math.max(existing.remainingTurns, dot.remainingTurns)
     existing.stacks = Math.max(existing.stacks, dot.stacks)
   } else {
     enemy.dots.push(dot)
   }
+}
+
+function isSameDotSource(a: ActiveDot, b: ActiveDot): boolean {
+  if (a.appliedBy !== b.appliedBy) return false
+  if (a.breakDotKind !== undefined || b.breakDotKind !== undefined) {
+    return a.breakDotKind === b.breakDotKind && a.targetEnemyIndex === b.targetEnemyIndex
+  }
+  return a.hitTemplateRef.ownerSlot === b.hitTemplateRef.ownerSlot
+    && a.hitTemplateRef.abilityKind === b.hitTemplateRef.abilityKind
+    && a.hitTemplateRef.hitIndex === b.hitTemplateRef.hitIndex
 }

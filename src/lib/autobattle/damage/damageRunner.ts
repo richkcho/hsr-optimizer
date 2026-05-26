@@ -12,7 +12,7 @@ import { resetConditionalState } from 'lib/optimization/conditionalStateUtils'
 import { StatKey } from 'lib/optimization/engine/config/keys'
 import { OutputTag } from 'lib/optimization/engine/config/tag'
 import { getDamageFunction } from 'lib/optimization/engine/damage/damageCalculator'
-import type { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
+import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 import type { Hit } from 'types/hitConditionalTypes'
 import type { OptimizerAction } from 'types/optimizer'
 
@@ -46,6 +46,12 @@ export interface DamageResolver {
   // context.enemyMaxToughness.
   // Optional because mock resolvers in tests may not implement it.
   resolveBreak?(state: BattleState, applierSlot: SlotIndex, enemyMaxToughness?: number): number
+  // Per-tick break-effect DoT damage (Burn/Shock/Bleed/etc.) credited to the breaker.
+  // v1 reuses the standard break-damage formula at 0.5x per tick — yields a 2-turn DoT
+  // delivering ~1x of a standard break event in total damage. Per-element refinement
+  // (Freeze action-skip, Wind Shear stacking, Entanglement scaling) is v2 scope.
+  // Self-primes via the slot's BASIC action when preBuiltActions is populated.
+  resolveBreakDot?(state: BattleState, applierSlot: SlotIndex, enemyMaxToughness: number, element?: ElementName): number
 }
 
 export interface CreateRealResolverOptions {
@@ -84,6 +90,18 @@ export function createRealDamageResolver(opts: CreateRealResolverOptions): Damag
       const slotState = opts.slotStates[applierSlot]
       if (!slotState) return 0
       return computeBreakDamage(slotState, enemyMaxToughness)
+    },
+    resolveBreakDot(state, applierSlot, enemyMaxToughness, _element) {
+      const slotState = opts.slotStates[applierSlot]
+      if (!slotState) return 0
+      // Self-prime via BASIC so the slot's ComputedStatsContainer carries fresh
+      // action-level stats. The element argument is plumbed for future per-element
+      // resistance overrides; v1 generic formula doesn't branch on it.
+      const action = state.preBuiltActions[serializeActorId({ slot: applierSlot, kind: 'primary' })]?.[AbilityKind.BASIC]
+      if (action && action.hits) {
+        runActionPipeline(state, { slot: applierSlot, kind: 'primary' }, action, slotState)
+      }
+      return 0.5 * computeBreakDamage(slotState, enemyMaxToughness)
     },
   }
 }
@@ -132,6 +150,7 @@ export function createMockDamageResolver(
   options?: {
     toughnessDmgPerHit?: Partial<Record<AbilityKind, number>>
     breakDmg?: number
+    breakDotDmgPerTick?: number
     element?: ElementName
   },
 ): DamageResolver {
@@ -144,6 +163,7 @@ export function createMockDamageResolver(
   const map = { ...defaults, ...perKind }
   const toughnessMap = options?.toughnessDmgPerHit ?? {}
   const breakDmg = options?.breakDmg ?? 0
+  const breakDotDmg = options?.breakDotDmgPerTick ?? 0
   const element = options?.element
   return {
     resolve(_state, _actor, kind) {
@@ -153,6 +173,9 @@ export function createMockDamageResolver(
     },
     resolveBreak(_state, _applierSlot, _enemyMaxToughness) {
       return breakDmg
+    },
+    resolveBreakDot(_state, _applierSlot, _enemyMaxToughness, _element) {
+      return breakDotDmg
     },
   }
 }

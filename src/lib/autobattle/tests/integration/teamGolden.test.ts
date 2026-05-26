@@ -129,23 +129,23 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after the per-enemy clock refactor (#10). With a single
-// enemy the cadence is unchanged, but the 0.25 × baseAV break-action delay reshuffles
-// enemy turn timing relative to actor turns — small (<1%) shifts across the team plus a
-// modest BREAK-bucket rotation (Sparkle/Aventurine swap whose attack lands the second
-// break of the run).
+// Golden refrozen on 2026-05-25 after #8 added break-effect DoTs (Burn/Shock/etc.) that
+// credit the breaker for 2 ticks of generic 0.5× break damage after each break. Each slot
+// now carries a non-trivial DOT bucket roughly proportional to its BREAK contributions;
+// grandTotal shifts +0.5% from the new DoT damage.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 27979306,
-  feixiaoTotal: 22095870,
+  grandTotal: 28111919,
+  feixiaoTotal: 22199474,
   feixiaoFua: 5519999,
   feixiaoUlt: 11258877,
   feixiaoBreak: 126263,
-  robinTotal: 2185008,
+  feixiaoDot: 103604,
+  robinTotal: 2201585,
   robinUnique: 1823960,
-  sparkleTotal: 289003,
-  aventurineTotal: 3409426,
+  sparkleTotal: 297291,
+  aventurineTotal: 3413570,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {
@@ -185,6 +185,7 @@ describe('autobattle team golden', () => {
     approxEq(feixiao.FUA ?? 0, GOLDEN.feixiaoFua)
     approxEq(feixiao.ULT ?? 0, GOLDEN.feixiaoUlt)
     approxEq(feixiao.BREAK ?? 0, GOLDEN.feixiaoBreak)
+    approxEq(feixiao.DOT ?? 0, GOLDEN.feixiaoDot)
     expect(feixiao.SKILL ?? 0).toBeGreaterThan(0)
 
     // Robin's Concerto Additional fires via the requiresSourceBuff-gated trigger on teammate

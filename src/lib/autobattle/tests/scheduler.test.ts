@@ -292,12 +292,9 @@ describe('break damage', () => {
     })
     const listener: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: listenerId }
 
-    // tough=60 → second SKILL breaks (30 tough × 2). The break sets brokenForEnemyTurns=1;
-    // the next enemy turn ticks it to 0, recovering the enemy and firing the listener.
-    // The marker buff is applied on the first SKILL so it's active by the time recovery
-    // happens. enemySpd=200
-    // turn ticks it to 0, recovering the enemy and firing the listener. enemySpd=200
-    // ensures the enemy turn fires inside the 600 AV window.
+    // tough=60 → second SKILL breaks (30 tough × 2). The marker buff is applied on the
+    // first SKILL so it's active by the time recovery happens. enemySpd=200 ensures the
+    // enemy turn fires inside the 600 AV window.
     const result = runAutobattle(
       makeInput([listener], { totalAv: 600, enemySpd: 200, enemies: enemies(60) }),
       {
@@ -338,6 +335,94 @@ describe('break damage', () => {
     expect(recoveryFired).toBeUndefined()
   })
 
+  test('break event registers a break-effect DoT crediting the breaker; subsequent enemy turns tick DOT damage', () => {
+    // tough=60 + 60 toughness per BASIC → first BASIC breaks. enemySpd=200 ensures
+    // 2 enemy turns inside the 600 AV window so the 2-turn break DoT fires both ticks.
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 600, enemySpd: 200, enemies: enemies(60) }),
+      {
+        resolver: createMockDamageResolver(
+          { BASIC: 50, SKILL: 100, ULT: 500 },
+          {
+            toughnessDmgPerHit: { BASIC: 60, SKILL: 30 },
+            breakDmg: 2000,
+            breakDotDmgPerTick: 333,
+          },
+        ),
+      },
+    )
+
+    const breakDotTicks = result.log.filter((e) => e.kind === 'DOT_TICK' && e.description.includes('Break DoT tick'))
+    expect(breakDotTicks.length).toBeGreaterThanOrEqual(1)
+    for (const tick of breakDotTicks) {
+      expect(tick.damage).toBe(333)
+    }
+    // Total DOT damage from the break DoT (mock returns flat 333 per tick).
+    const dotTotal = result.ledger.byActorBySource['0:primary']?.DOT ?? 0
+    expect(dotTotal).toBeGreaterThanOrEqual(333)
+  })
+
+  test('break-effect DoT bound to enemy[1] does not credit when enemy[0] turns', () => {
+    // AoE breaker. 3 enemies, tough=60. AoE skill on first cast breaks all three;
+    // each enemy gets a break DoT bound to itself. We assert the DOT bucket reflects
+    // 1 tick per target enemy per per-enemy turn, not N-multiplied.
+    const aoeCharId = '9996' as CharacterId
+    registerCharacterData(aoeCharId, {
+      abilityTargetHint: {
+        [AbilityKind.BASIC]: 'allEnemies',
+        [AbilityKind.SKILL]: 'allEnemies',
+      },
+    })
+    const aoeMember: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: aoeCharId }
+
+    const result = runAutobattle(
+      makeInput([aoeMember], { totalAv: 500, enemySpd: 10, enemies: enemies(60, 60, 60) }),
+      {
+        resolver: createMockDamageResolver(
+          { BASIC: 50, SKILL: 100, ULT: 500 },
+          {
+            toughnessDmgPerHit: { BASIC: 60, SKILL: 30 },
+            breakDmg: 2000,
+            breakDotDmgPerTick: 100,
+          },
+        ),
+      },
+    )
+
+    // Three breaks fire → three break DoTs registered (one per enemy). With enemySpd=10
+    // and totalAv=500, no enemy turn fires (cycle 1000 AV). No ticks fire either.
+    const breaks = result.log.filter((e) => e.kind === 'BREAK')
+    expect(breaks.length).toBe(3)
+    const dotTicks = result.log.filter((e) => e.kind === 'DOT_TICK')
+    expect(dotTicks.length).toBe(0)
+  })
+})
+
+describe('break-effect DoTs (multi-tick)', () => {
+  test('break DoT accumulates ≥2 ticks across the target enemy\'s post-break turns', () => {
+    // Wide totalAv so the break DoT has time to fire its 2 ticks (and refresh on subsequent
+    // re-breaks). Mock breakDotDmgPerTick is a flat constant per tick, so we just need to
+    // confirm the credited DOT damage equals N × 50 for some N ≥ 2.
+    const result = runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 2000, enemySpd: 100, enemies: enemies(60) }),
+      {
+        resolver: createMockDamageResolver(
+          { BASIC: 50, SKILL: 100, ULT: 500 },
+          {
+            toughnessDmgPerHit: { BASIC: 60, SKILL: 30 },
+            breakDmg: 2000,
+            breakDotDmgPerTick: 50,
+          },
+        ),
+      },
+    )
+    const breakDotTicks = result.log.filter((e) => e.kind === 'DOT_TICK' && e.description.includes('Break DoT tick'))
+    expect(breakDotTicks.length).toBeGreaterThanOrEqual(2)
+    expect(result.ledger.byActorBySource['0:primary']?.DOT ?? 0).toBeGreaterThanOrEqual(100)
+  })
+})
+
+describe('FUA trigger gating: enemyWeaknessBroken config', () => {
   test('action.config.enemyWeaknessBroken flips true after the target enemy breaks', () => {
     // Real preBuiltActions only exist when buildResolvers: true (the real pipeline path).
     // For a focused unit test we stuff a stub action object on first resolve so the

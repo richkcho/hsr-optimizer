@@ -17,7 +17,7 @@ import {
   tickTurnsOnSource,
   tickTurnsOnTarget,
 } from 'lib/autobattle/state/buffs'
-import { breakActionDelayAv, onEnemyTurn } from 'lib/autobattle/state/enemy'
+import { addOrRefreshDot, breakActionDelayAv, onEnemyTurn } from 'lib/autobattle/state/enemy'
 import { addDamage } from 'lib/autobattle/state/ledger'
 import {
   changeEnergy,
@@ -279,14 +279,37 @@ function processEnemyTurn(state: BattleState, resolver: DamageResolver, enemyInd
     if (!applierMember) continue
     const primaryActor: ActorId = { slot: dot.appliedBy, kind: 'primary' }
 
-    // Phase C: run the DoT's actual hit damage function via resolveHit when available,
-    // falling back to a full resolve call for the mock resolver case.
+    // Break-effect DoTs are bound to a specific enemy via targetEnemyIndex; they only
+    // damage that enemy's turn. Damage is computed inline via resolver.resolveBreakDot
+    // (the breaker's stat container + the broken enemy's maxToughness + the hit's element).
+    if (dot.breakDotKind !== undefined) {
+      if (dot.targetEnemyIndex !== enemyIndex) continue
+      const targetIndex = dot.targetEnemyIndex
+      const dmg = resolver.resolveBreakDot
+        ? resolver.resolveBreakDot(state, dot.appliedBy, state.enemy.maxToughness[targetIndex], dot.element)
+        : 0
+      if (dmg <= 0) continue
+      addDamage(state.ledger, primaryActor, AbilityKind.DOT, dmg)
+      appendLog(state, {
+        elapsedAv: state.elapsedAv,
+        deltaAv: 0,
+        actor: primaryActor,
+        kind: 'DOT_TICK',
+        description: `Break DoT tick (${applierMember.characterId} → enemy ${targetIndex})`,
+        damage: dmg,
+      })
+      continue
+    }
+
+    // Shared DoTs (legacy applier-driven): the per-enemy clock model already fires the
+    // dot once per per-enemy turn, so we credit × 1 per fire here. Total per cycle
+    // matches the pre-refactor "× count on a single shared turn" accounting.
     const ref = dot.hitTemplateRef
     const perHit = resolver.resolveHit
       ? resolver.resolveHit(state, ref.ownerSlot, ref.abilityKind, ref.hitIndex)
       : resolver.resolve(state, primaryActor, AbilityKind.DOT).totalDmg
     const dmg = perHit * Math.max(1, dot.stacks)
-    addDamage(state.ledger, primaryActor, AbilityKind.DOT, dmg * state.enemy.count)
+    addDamage(state.ledger, primaryActor, AbilityKind.DOT, dmg)
 
     appendLog(state, {
       elapsedAv: state.elapsedAv,
@@ -294,7 +317,7 @@ function processEnemyTurn(state: BattleState, resolver: DamageResolver, enemyInd
       actor: primaryActor,
       kind: 'DOT_TICK',
       description: `DoT tick (${applierMember.characterId})`,
-      damage: dmg * state.enemy.count,
+      damage: dmg,
     })
   }
 
@@ -513,6 +536,19 @@ function executeAbility(
       // weakness-break action delay; Imaginary stagger of ~33% is out of scope for v1).
       // Grounded in .tmp/raw-battle-log-topaz.json line 1 (boss SPD 158 → 15.823 AV shift).
       state.enemy.clockAv[i] += breakActionDelayAv(state.enemy, i)
+
+      // Register the break-effect DoT (Burn/Shock/etc.) crediting the breaker. v1 collapses
+      // all element variants into a generic 2-turn DoT — per-element refinements (Freeze
+      // skip, Wind Shear stacking, Entanglement scaling) are tagged TODO for v2.
+      addOrRefreshDot(state.enemy, {
+        appliedBy: actorId.slot,
+        hitTemplateRef: { ownerSlot: actorId.slot, abilityKind: chosen.kind, hitIndex: -1 },
+        stacks: 1,
+        remainingTurns: 2,
+        breakDotKind: 'generic',
+        targetEnemyIndex: i,
+        element: resolved.element,
+      })
 
       if (!resolver.resolveBreak) continue
 
