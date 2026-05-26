@@ -129,24 +129,26 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after the scheduler started initializing clocks from
-// effective SPD (snapshot via the optimizer pipeline at sim-init, capturing relic main+sub
-// + traces + LC + always-on conditional bonuses) instead of intrinsic baseSpd. Every actor
-// now takes more turns over the same 6000 AV window — net team total drifts ~1.2% from the
-// prior frozen values, mostly redistribution between ULT and FUA buckets as Feixiao ults
-// slightly less per turn but lands more total turns.
+// Golden refrozen on 2026-05-25 after the scheduler started flipping
+// action.config.enemyWeaknessBroken based on observed per-enemy broken state (closes #7).
+// Feixiao's totals are unchanged — her kit's initializeConfigurationsContainer already
+// pre-sets `enemyWeaknessBroken=true` for all actions via `weaknessBrokenUlt`, and the
+// scheduler ORs that kit override with observed broken so the kit assumption is preserved.
+// Robin / Sparkle / Aventurine each gain ~4% as their actions now correctly land the
+// broken-state damage bonus (baseUniversalMulti 0.9 → 1.0) on attacks against the broken
+// enemy that previously went unbonused.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 27751498,
-  feixiaoTotal: 22081626,
+  grandTotal: 28004903,
+  feixiaoTotal: 22081627,
   feixiaoFua: 5519999,
   feixiaoUlt: 11258877,
   feixiaoBreak: 112019,
-  robinTotal: 2103941,
-  robinUnique: 1754570,
-  sparkleTotal: 277236,
-  aventurineTotal: 3288694,
+  robinTotal: 2187339,
+  robinUnique: 1827265,
+  sparkleTotal: 287829,
+  aventurineTotal: 3448108,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

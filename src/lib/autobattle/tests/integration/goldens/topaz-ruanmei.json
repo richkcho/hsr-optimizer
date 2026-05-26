@@ -2570,7 +2570,7 @@
     "slot0 (Topaz): our sim folds Numby memo damage into primary FUA. Reference splits primary (~374k) from memo (~1.12M). Per-slot combined totals match within ~10%.",
     "slot1 (Ruan Mei): missing ~119k BREAK from her break-zone passive (GenericAbilityStart events on enemy weakness recovery \u2014 not yet modeled in scheduler).",
     "slot2 (Robin): missing ~430k UNIQUE damage from Flowing Nightglow LC (per-teammate-attack Additional proc not yet triggered on teammate actions; see issue #3).",
-    "slot3 (Aventurine): systematically low across BASIC / FUA / ULT (~70-82% under). Likely buff-propagation gap (Topaz Ashblazing 4pc, Robin Concerto, Ruan Mei Overtone) not all reaching teammates correctly.",
+    "slot3 (Aventurine): tracks reference within ~2% after #7 lands the broken-state damage bonus on her BASIC/FUA/ULT. Prior drift was -82% before the scheduler started flipping enemyWeaknessBroken from the live per-enemy broken state.",
     "slot0 BREAK: per-enemy gauges now credit each attacker independently. Topaz only breaks the boss (toughness 140) via her single-target attacks; AoE breakers (Aventurine, Ruan Mei) break the elites. Expect slot0 BREAK to drop substantially from the old +178% over-attribution."
   ],
   "tolerance": {

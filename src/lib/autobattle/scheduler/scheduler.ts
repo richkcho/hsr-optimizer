@@ -269,6 +269,33 @@ function executeAbility(
   // SP economy
   payAbilitySp(state, member, chosen.kind)
 
+  // Resolve target up-front so the broken-state lookup (used by both the enemyWeaknessBroken
+  // flip below and the post-resolve break-detection block) shares one computation.
+  const target = resolveAbilityTarget(member, chosen)
+  const targetIndices = resolveTargetEnemyIndices(target, state.enemy)
+
+  // Flip action.config.enemyWeaknessBroken so the damage pipeline picks up the broken-state
+  // bonus (baseUniversalMulti 0.9 → 1.0 in damageCalculator.ts:163 et al.) before runActionPipeline
+  // calls x.setConfig. v1 AoE approximation: gate on the first targeted enemy's broken state;
+  // an AoE ult that hits a mix of broken and unbroken enemies bills the whole resolve under the
+  // first target's state. Per-target resolve is v2 scope — documented alongside the existing
+  // Boothill super-break note. Mock-resolver tests with no preBuiltActions skip the flip.
+  //
+  // Kit overrides (Feixiao's `weaknessBrokenUlt`, Firefly's SKILL/ULT, Boothill, Fugue, Rappa,
+  // The Dahlia, Trailblazer-Harmony) pre-set enemyWeaknessBroken=true at action build time to
+  // model self-induced break — the attack itself applies a break before the damage step. The
+  // scheduler ORs the kit-set value with observed broken so those assumptions stick regardless
+  // of whether the enemy is currently broken.
+  const actorKey = serializeActorId({ slot: actorId.slot, kind: 'primary' })
+  const preBuiltAction = state.preBuiltActions[actorKey]?.[chosen.kind]
+  if (preBuiltAction) {
+    const firstTargetIndex = targetIndices[0]
+    const observedBroken = firstTargetIndex !== undefined
+      && state.enemy.brokenForEnemyTurns[firstTargetIndex] !== undefined
+    const kitOverride = state.kitOverrideEnemyWeaknessBroken[actorKey]?.[chosen.kind] ?? false
+    preBuiltAction.config.enemyWeaknessBroken = kitOverride || observedBroken
+  }
+
   // Damage resolution (mock in Phase B; real pipeline in Phase C)
   const resolved = resolver.resolve(state, actorId, chosen.kind)
   const totalDmg = resolved.totalDmg * (chosen.kind === AbilityKind.BASIC || chosen.kind === AbilityKind.SKILL
@@ -383,7 +410,7 @@ function executeAbility(
     spAfter: state.resources.skillPoints,
     energyAfter: state.resources.energy[actorId.slot],
     notes: chosen.reason ? [chosen.reason] : undefined,
-    target: resolveAbilityTarget(member, chosen),
+    target,
   })
 
   // Break detection. Per-enemy gauges: this attack's toughnessDmg is applied to each target
@@ -397,8 +424,6 @@ function executeAbility(
   // the same behavior). The resolver supplies the action's element via AbilityResolution;
   // a mock resolver omitting `element` is treated as weak-to-all-compatible (no gate).
   if (resolved.toughnessDmg > 0) {
-    const target = resolveAbilityTarget(member, chosen)
-    const targetIndices = resolveTargetEnemyIndices(target, state.enemy)
     for (const i of targetIndices) {
       if (state.enemy.brokenForEnemyTurns[i] !== undefined) continue
       if (!hitElementMatchesWeakness(resolved.element, state.enemy.weaknesses[i])) continue

@@ -188,6 +188,13 @@ export interface BattleState {
   // Cached objects (built once at sim-start, mutated each turn)
   contexts: Record<SlotIndex, OptimizerContext>
   preBuiltActions: Record<ActorIdKey, Partial<Record<AbilityKind, OptimizerAction>>>
+  // Snapshot of action.config.enemyWeaknessBroken as the character/light-cone
+  // initializeConfigurationsContainer hooks set it at action build time. Kits like Feixiao's
+  // ULT and Firefly's SKILL/ULT pre-set true to model self-induced break (the attack itself
+  // applies the break before the damage step). The scheduler ORs this kit override with the
+  // observed broken state on each resolve so kit assumptions stick even when the actual
+  // enemy is not currently broken.
+  kitOverrideEnemyWeaknessBroken: Record<ActorIdKey, Partial<Record<AbilityKind, boolean>>>
 }
 
 // =============================================================================

@@ -120,6 +120,7 @@ export function createInitialBattleState(
     log: [],
     contexts,
     preBuiltActions,
+    kitOverrideEnemyWeaknessBroken: snapshotKitEnemyWeaknessBroken(preBuiltActions),
   }
 
   // Battle-start bonus energy (technique-style grants). Applied via changeEnergy so ERR
@@ -157,6 +158,28 @@ function snapshotMemberStats(
     err: x.getSelfValue(StatKey.ERR),
     spd: x.getSelfValue(StatKey.SPD),
   }
+}
+
+// Captures action.config.enemyWeaknessBroken as set by the character/light-cone
+// initializeConfigurationsContainer hooks (e.g. Feixiao's `weaknessBrokenUlt` toggle
+// pre-sets ULT to true, modeling that her ULT itself breaks the target). The scheduler
+// reads this back at resolve time and ORs with the live broken state so kit-defined
+// "always broken" assumptions persist regardless of whether the enemy is currently broken.
+function snapshotKitEnemyWeaknessBroken(
+  preBuiltActions: BattleState['preBuiltActions'],
+): BattleState['kitOverrideEnemyWeaknessBroken'] {
+  const snapshot: BattleState['kitOverrideEnemyWeaknessBroken'] = {}
+  for (const key of Object.keys(preBuiltActions)) {
+    const byKind = preBuiltActions[key]
+    if (!byKind) continue
+    const slotSnap: Partial<Record<AbilityKind, boolean>> = {}
+    for (const kind of Object.keys(byKind) as AbilityKind[]) {
+      const action = byKind[kind]
+      if (action) slotSnap[kind] = action.config.enemyWeaknessBroken === true
+    }
+    snapshot[key] = slotSnap
+  }
+  return snapshot
 }
 
 // Memo SPD resolution: prefer explicit characterData.memo.entitySpd (Numby=80,

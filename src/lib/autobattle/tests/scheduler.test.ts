@@ -1,4 +1,4 @@
-import { createMockDamageResolver } from 'lib/autobattle/damage/damageRunner'
+import { createMockDamageResolver, type DamageResolver } from 'lib/autobattle/damage/damageRunner'
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
 import { registerCharacterData } from 'lib/autobattle/characterData/characterDataRegistry'
 import type { AutobattleInput, AutobattleInputEnemy, CharacterData, SlotIndex, TeamMemberInput } from 'lib/autobattle/types'
@@ -246,6 +246,48 @@ describe('break damage', () => {
     const breakLogEntries = result.log.filter((e) => e.kind === 'BREAK')
     expect(breakLogEntries.length).toBeGreaterThan(0)
     expect(result.ledger.byActorBySource['0:primary']?.BREAK ?? 0).toBeGreaterThan(0)
+  })
+
+  test('action.config.enemyWeaknessBroken flips true after the target enemy breaks', () => {
+    // Real preBuiltActions only exist when buildResolvers: true (the real pipeline path).
+    // For a focused unit test we stuff a stub action object on first resolve so the
+    // scheduler's flip can mutate it for subsequent calls. EnemySpd=10 keeps the broken
+    // state from recovering inside the window.
+    const stubActions: Partial<Record<AbilityKind, { config: { enemyWeaknessBroken: boolean } }>> = {
+      [AbilityKind.BASIC]: { config: { enemyWeaknessBroken: false } },
+      [AbilityKind.SKILL]: { config: { enemyWeaknessBroken: false } },
+      [AbilityKind.ULT]: { config: { enemyWeaknessBroken: false } },
+    }
+    const observed: { kind: AbilityKind; brokenInConfig: boolean }[] = []
+    const observer: DamageResolver = {
+      resolve(state, actor, kind) {
+        const key = `${actor.slot}:primary`
+        const slot = state.preBuiltActions[key]
+        if (!slot) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.preBuiltActions[key] = stubActions as any
+        }
+        observed.push({ kind, brokenInConfig: stubActions[kind]!.config.enemyWeaknessBroken })
+        const dmgMap: Partial<Record<AbilityKind, number>> = { BASIC: 50, SKILL: 100, ULT: 500 }
+        const toughMap: Partial<Record<AbilityKind, number>> = { BASIC: 60, SKILL: 30 }
+        const dmg = dmgMap[kind] ?? 0
+        return { totalDmg: dmg, perHit: [dmg], toughnessDmg: toughMap[kind] ?? 0 }
+      },
+      resolveBreak: () => 2000,
+    }
+    runAutobattle(
+      makeInput([makeMember(0, 100, 9999)], { totalAv: 600, enemySpd: 10 }),
+      { resolver: observer },
+    )
+
+    // Pre-break attacks should have seen the flag false; at least one post-break attack
+    // should have seen it true. The first call installs the stub action AFTER the
+    // scheduler's flip-and-resolve sequence ran for that turn, so a 'true' observation
+    // must come from a later call where the stub was already present at flip time.
+    expect(observed.length).toBeGreaterThan(2)
+    expect(observed.some((c) => c.brokenInConfig)).toBe(true)
+    // Sanity: the first observation predates any break (stub seen unflipped).
+    expect(observed[0].brokenInConfig).toBe(false)
   })
 })
 
