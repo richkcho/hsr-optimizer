@@ -1,6 +1,7 @@
 import type { DamageResolver } from 'lib/autobattle/damage/damageRunner'
 import { createRealDamageResolver } from 'lib/autobattle/damage/damageRunner'
 import {
+  advanceActorPercent,
   advanceAllClocks,
   advancePercent,
   argminClock,
@@ -126,9 +127,7 @@ function advanceTime(state: BattleState, dt: number): void {
 function processActorTurn(state: BattleState, actorId: ActorId, resolver: DamageResolver): void {
   const member = state.members[actorId.slot]!
   if (actorId.kind !== 'primary') {
-    // Memo turns: Phase B treats memo turns as no-ops (memos act through their entity hits
-    // emitted by the primary's actionDefinition). Phase D/G will wire memo decisions.
-    resetClockFor(state, actorId, member.baseSpd)
+    processMemoTurn(state, actorId, member, resolver)
     return
   }
 
@@ -140,6 +139,42 @@ function processActorTurn(state: BattleState, actorId: ActorId, resolver: Damage
   tickTurnsOnTarget(state, actorId.slot)
   tickTurnsOnSource(state, actorId.slot)
   fireFuaTriggers(state, actorId, chosen.kind, resolver)
+}
+
+// Memo/summon own-turn fire. v1 always fires characterData.memo.onTurn — no tendency-style
+// branching (memosprites' multi-action repertoire is out of scope). The action's hits live
+// in the owner's preBuiltActions keyed by primary slot; executeAbility looks them up there
+// and the resolver runs them under the memo's ActorId — so damage attributes to slotN:memo:
+// <entityName> rather than the owner's primary bucket.
+//
+// Side-effect policy: memo turns DO flow through executeAbility's owner-side hooks (energy,
+// stacks, characterData grants, Robin's energyPassiveOnAnyAttack) — Numby's FUA giving Topaz
+// +5 energy matches HSR. We skip tickTurnsOnSource/Target and fireFuaTriggers though: turn-
+// counter ticks and FUA chains are primary-turn semantics in HSR (a memo's attack doesn't
+// advance Robin's Concerto window, nor does it chain into other FUA triggers in v1).
+function processMemoTurn(
+  state: BattleState,
+  actorId: ActorId,
+  member: TeamMember,
+  resolver: DamageResolver,
+): void {
+  const onTurn = member.characterData.memo?.onTurn
+  const memoSpd = member.memoSpd ?? member.baseSpd
+  if (!onTurn) {
+    // No declared action — preserve the pre-Phase-D no-op behavior so memo-using characters
+    // without an onTurn entry still tick their clock harmlessly.
+    resetClockFor(state, actorId, memoSpd)
+    return
+  }
+
+  executeAbility(
+    state,
+    actorId,
+    { kind: onTurn.abilityKind, reason: onTurn.reason ?? 'memo turn' },
+    resolver,
+    0,
+  )
+  resetClockFor(state, actorId, memoSpd)
 }
 
 function resetClockFor(state: BattleState, actorId: ActorId, spd: number): void {
@@ -270,6 +305,21 @@ function executeAbility(
     if (passive && m) {
       changeEnergy(state.resources, m, passive)
     }
+  }
+
+  // Memo action-advance on teammate attack (Topaz Talent: ally BASIC/SKILL/ULT on a marked
+  // enemy advances Numby's gauge by 50%). Self attacks don't count — "ally other than the
+  // memo's owner" semantics. The conditionMark gate is approximated as always-satisfied in
+  // v1 (same simplification as `teammateAttackVsTarget` triggers).
+  for (const otherMember of Object.values(state.members)) {
+    if (!otherMember || otherMember.slot === actorId.slot) continue
+    const advance = otherMember.characterData.memo?.advanceOnTeammateAttack
+    if (!advance) continue
+    if (advance.abilityKindFilter && !advance.abilityKindFilter.includes(chosen.kind)) continue
+    const memoActor = otherMember.actors.find((a) => a.kind !== 'primary')
+    const memoSpd = otherMember.memoSpd
+    if (!memoActor || memoSpd === undefined) continue
+    advanceActorPercent(state, memoActor, memoSpd, advance.avPercent)
   }
 
   appendLog(state, {
@@ -456,7 +506,18 @@ function fireFuaTriggers(state: BattleState, source: ActorId, kind: AbilityKind,
       if (member.tendency.shouldFireFua && !member.tendency.shouldFireFua(source, ctx)) continue
 
       const fuaKind = trigger.selector?.abilityKind ?? AbilityKind.FUA
-      const fuaActor: ActorId = { slot, kind: 'primary' }
+      // When the firing character's memo "owns" the triggered ability (e.g. Topaz/Numby,
+      // Lingsha/Fuyuan — the FUA hits in actionDefinition are tagged sourceEntity(MemoName)
+      // and the in-game agent of the attack is the memo, not the character), route the
+      // damage to the memo's ActorId. The reference outcome treats these hits as memo-bucket;
+      // attributing to primary would split a single conceptual source across two buckets.
+      // Use member.slot (numeric) rather than the outer `slot` loop variable — Object.keys
+      // returns strings, and a string slot in ActorId leaks into downstream key-by-slot
+      // aggregations as a separate bucket from numeric-slot entries.
+      const memo = member.characterData.memo
+      const fuaActor: ActorId = memo && memo.onTurn?.abilityKind === fuaKind
+        ? { slot: member.slot, kind: 'memo', entityName: memo.entityName }
+        : { slot: member.slot, kind: 'primary' }
       executeAbility(state, fuaActor, { kind: fuaKind, reason: `fua trigger ${trigger.id}` }, resolver, 0)
     }
   }

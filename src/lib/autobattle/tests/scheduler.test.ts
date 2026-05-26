@@ -1,7 +1,7 @@
 import { createMockDamageResolver } from 'lib/autobattle/damage/damageRunner'
 import { runAutobattle } from 'lib/autobattle/scheduler/scheduler'
 import { registerCharacterData } from 'lib/autobattle/characterData/characterDataRegistry'
-import type { AutobattleInput, AutobattleInputEnemy, SlotIndex, TeamMemberInput } from 'lib/autobattle/types'
+import type { AutobattleInput, AutobattleInputEnemy, CharacterData, SlotIndex, TeamMemberInput } from 'lib/autobattle/types'
 import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 import { describe, expect, test } from 'vitest'
 import type { CharacterId } from 'types/character'
@@ -393,5 +393,144 @@ describe('clock pause: clockPausedByBuff', () => {
     // Exactly one ult: she ults, gets frozen, can't act again within 111 AV window.
     const robinUlts = result.log.filter((e) => `${e.actor.slot}` === '1' && e.kind === AbilityKind.ULT).length
     expect(robinUlts).toBe(1)
+  })
+})
+
+describe('memo/summon own-turn fire', () => {
+  // Build a synthetic character with memo + onTurn so the test owns the cadence and isn't
+  // entangled with Topaz's FUA trigger (which has its own attribution test below). The memo
+  // uses fromOwnerSpd: 1 so memo SPD === owner SPD — gives predictable clock cycles.
+  function registerSummonChar(id: CharacterId, entityName: string): void {
+    const data: Partial<CharacterData> = {
+      memo: {
+        entityName,
+        spdSource: { fromOwnerSpd: 1 },
+        onTurn: { abilityKind: AbilityKind.FUA, reason: 'memo own-turn' },
+      },
+    }
+    registerCharacterData(id, data)
+  }
+
+  test('memo clock fires onTurn action; damage attributed to memo ActorIdKey', () => {
+    const charId = '1901' as CharacterId  // synthetic id, no real character collision
+    registerSummonChar(charId, 'TestSummon')
+    const member: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: charId }
+
+    const result = runAutobattle(
+      makeInput([member], { totalAv: 1000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    const memoKey = '0:memo:TestSummon'
+    const memoFua = result.ledger.byActorBySource[memoKey]?.FUA ?? 0
+    // FUA mock damage is 150; at SPD 100 over 1000 AV the memo clock cycles 9–10 times
+    // depending on where the totalAv cap lands relative to the last clock tick.
+    expect(memoFua).toBeGreaterThanOrEqual(150 * 9)
+    expect(memoFua).toBeLessThanOrEqual(150 * 10)
+
+    // Primary's FUA bucket should NOT receive these hits — they belong to the memo.
+    const primaryFua = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
+    expect(primaryFua).toBe(0)
+  })
+
+  test('memo without onTurn ticks clock harmlessly (no damage, no crash)', () => {
+    // Same character but with onTurn stripped — pre-Phase-D no-op path.
+    const charId = '1902' as CharacterId
+    registerCharacterData(charId, {
+      memo: { entityName: 'SilentMemo', spdSource: { fromOwnerSpd: 1 } },
+    })
+    const member: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: charId }
+
+    const result = runAutobattle(
+      makeInput([member], { totalAv: 500, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    expect(result.ledger.byActorBySource['0:memo:SilentMemo']).toBeUndefined()
+  })
+
+  test('Topaz Numby damage attributes to memo bucket, never to primary FUA', () => {
+    // Numby fires only on its own 80-SPD clock (no fuaTrigger). Ally BASIC/SKILL/ULTs
+    // advance the clock 50% via Talent. Either way, the damage lives in slot0:memo:Numby
+    // and slot0:primary must stay free of any FUA contribution — this is the load-bearing
+    // attribution shape the topaz-ruanmei golden expects.
+    const topaz: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: '1112' as CharacterId }
+    const teammate = makeMember(1, 100, 9999)
+
+    const result = runAutobattle(
+      makeInput([topaz, teammate], { totalAv: 1000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    const memoFua = result.ledger.byActorBySource['0:memo:Numby']?.FUA ?? 0
+    expect(memoFua).toBeGreaterThan(0)
+    const primaryFua = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
+    expect(primaryFua).toBe(0)
+  })
+
+  test('advanceOnTeammateAttack: ally BASIC advances memo clock', () => {
+    // Same synthetic char as above, but with advanceOnTeammateAttack at 100% so each
+    // teammate BASIC fires the memo exactly once. Confirms the advance path drives
+    // memo cadence beyond the natural clock.
+    const charId = '1904' as CharacterId
+    registerCharacterData(charId, {
+      memo: {
+        entityName: 'AdvanceMemo',
+        spdSource: 'entityDefinition',
+        entitySpd: 1,  // glacial natural cadence — own-clock fires negligibly often
+        onTurn: { abilityKind: AbilityKind.FUA, reason: 'advance memo' },
+        advanceOnTeammateAttack: {
+          avPercent: 1.0,
+          abilityKindFilter: [AbilityKind.BASIC],
+        },
+      },
+    })
+    const owner: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: charId }
+    const ally = makeMember(1, 100, 9999)
+
+    const result = runAutobattle(
+      makeInput([owner, ally], { totalAv: 1000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    const allyBasics = result.log.filter((e) =>
+      e.kind === AbilityKind.BASIC
+      && e.actor.slot === 1
+      && e.actor.kind === 'primary'
+    ).length
+    const memoFires = (result.ledger.byActorBySource['0:memo:AdvanceMemo']?.FUA ?? 0) / 150
+    // Every ally BASIC (and only ally BASIC, per the filter) advances the memo to full.
+    // Allow ±1 fire of slack for the natural-cadence drift at SPD 1.
+    expect(memoFires).toBeGreaterThanOrEqual(allyBasics - 1)
+    expect(memoFires).toBeLessThanOrEqual(allyBasics + 1)
+  })
+
+  test('memo clock cadence uses memoSpd, not owner baseSpd', () => {
+    // Owner SPD 100, memo SPD 200 via fromOwnerSpd: 2 → memo should fire ~2× as often as
+    // the owner. This catches the previous bug where resetClockFor used member.baseSpd.
+    const charId = '1903' as CharacterId
+    registerCharacterData(charId, {
+      memo: {
+        entityName: 'FastMemo',
+        spdSource: { fromOwnerSpd: 2 },
+        onTurn: { abilityKind: AbilityKind.FUA, reason: 'fast memo' },
+      },
+    })
+    const member: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: charId }
+
+    const result = runAutobattle(
+      makeInput([member], { totalAv: 1000, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    const memoFires = (result.ledger.byActorBySource['0:memo:FastMemo']?.FUA ?? 0) / 150
+    const ownerActions = result.log.filter((e) =>
+      `${e.actor.slot}` === '0'
+      && e.actor.kind === 'primary'
+      && (e.kind === AbilityKind.BASIC || e.kind === AbilityKind.SKILL)
+    ).length
+    // 2× memo cadence: ~20 memo fires vs ~10 owner actions over 1000 AV. Bounds keep some
+    // slack for the battle-start AV layout but enforce the 2× ratio.
+    expect(memoFires).toBeGreaterThanOrEqual(ownerActions * 1.8)
   })
 })

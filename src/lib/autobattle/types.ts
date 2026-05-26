@@ -48,6 +48,11 @@ export interface TeamMember {
   tendency: Tendency
   characterData: CharacterData
   actors: ActorId[]                                  // primary + optional memo
+  // Resolved SPD for the memo/summon actor (matches computeMemoSpd at init-time). Undefined
+  // when this member has no memo. Cached here so the scheduler can reset the memo clock to
+  // the right base SPD without re-resolving spdSource — using member.baseSpd would tick the
+  // memo at the owner's cadence.
+  memoSpd?: number
 }
 
 // =============================================================================
@@ -285,8 +290,38 @@ export interface MemoData {
   // 'entityDefinition' = use the EntityDefinition.memoBaseSpd{Flat,Scaling} fields directly.
   // { fromOwnerSpd: f } = memo SPD = owner SPD * f (Hyacine/Ica style).
   spdSource: 'entityDefinition' | { fromOwnerSpd: number }
+  // Explicit base SPD for the memo/summon, used when spdSource is 'entityDefinition' and we
+  // can't (yet) read EntityDefinition.memoBaseSpdFlat off the OptimizerContext at scheduler-
+  // init time. Numby=80, Netherwing=165, etc. When unset, the 'entityDefinition' case falls
+  // back to the owner's baseSpd as a coarse approximation.
+  entitySpd?: number
   // Memos typically don't generate owner energy. Defaults to {} (no energy gen).
   energyOnAction?: Partial<Record<AbilityKind, number>>
+  // The action the memo/summon fires when its own clock hits zero. The AbilityKind selects
+  // a hit definition from the owner's actionDefinition (memo/summon hits live there, tagged
+  // sourceEntity(MemoName)). When the memo fires, damage is attributed to the memo's ActorId
+  // — landing in slotN:memo:<entityName> rather than the owner's primary bucket.
+  //
+  // Summons (Topaz/Numby, Lingsha/Fuyuan) have exactly one own-turn action — typically
+  // AbilityKind.FUA, the same hit data that also fires when an ally triggers it. Memosprites
+  // (Hyacine/Ica, Castorice/Netherwing) own SKILL/ULT/etc. and would conceptually need
+  // tendency-driven selection, but v1 simplifies to a single default action for all.
+  onTurn?: { abilityKind: AbilityKind; reason?: string }
+  // When a non-owner ally takes a primary action matching abilityKindFilter (defaults to
+  // every attack-class kind), advance this memo's clock by avPercent of its baseline AV.
+  //
+  // Models Topaz's Talent: ally BASIC/SKILL/ULT on a Proof-of-Debt-marked enemy advances
+  // Numby's gauge by 50%. v1 ignores conditionMark (treated as always satisfied — same
+  // approximation `teammateAttackVsTarget` triggers use for fire conditions).
+  //
+  // The advance accumulates across multiple ally actions in the same scheduler iteration:
+  // each call reduces remainingAv by avPercent * baseAv; the memo fires as soon as it
+  // drops to zero (HSR action gauge does not waste overflow on the firing turn itself).
+  advanceOnTeammateAttack?: {
+    avPercent: number
+    abilityKindFilter?: AbilityKind[]
+    conditionMark?: string
+  }
 }
 
 export interface CharacterData {

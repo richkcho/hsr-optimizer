@@ -74,6 +74,7 @@ export function createInitialBattleState(
     clocks.push(primaryClock)
     if (characterData.memo && actors[1]) {
       const memoSpd = computeMemoSpd(member)
+      member.memoSpd = memoSpd
       clocks.push(createClock(actors[1], memoSpd))
     }
   }
@@ -153,15 +154,18 @@ function snapshotErr(
   return x.getSelfValue(StatKey.ERR)
 }
 
-// Memo SPD resolution for Phase B uses only the characterData.memo.spdSource field. The
-// 'entityDefinition' case (e.g. Aglaea/Castorice) requires reading the character's
-// EntityDefinition memoBase fields, which depends on Phase C's OptimizerContext — for Phase B
-// it falls back to the parent's baseSpd. The { fromOwnerSpd } variant works fully now.
+// Memo SPD resolution: prefer explicit characterData.memo.entitySpd (e.g. Numby=80,
+// Netherwing=165) over the older 'entityDefinition' fallback. When entitySpd is unset and
+// the source is 'entityDefinition', we fall back to the owner's baseSpd as a coarse
+// approximation — slated to be replaced with a real EntityDefinition.memoBaseSpd{Flat,Scaling}
+// read once that data is plumbed through the OptimizerContext at scheduler-init time.
+// The { fromOwnerSpd } variant (Hyacine/Ica) works directly off member.baseSpd.
 function computeMemoSpd(member: TeamMember): number {
-  const source = member.characterData.memo?.spdSource
-  if (!source) return member.baseSpd
-  if (source === 'entityDefinition') return member.baseSpd
-  return member.baseSpd * source.fromOwnerSpd
+  const memo = member.characterData.memo
+  if (!memo) return member.baseSpd
+  if (memo.entitySpd !== undefined) return memo.entitySpd
+  if (memo.spdSource === 'entityDefinition') return member.baseSpd
+  return member.baseSpd * memo.spdSource.fromOwnerSpd
 }
 
 export { avFromSpd }

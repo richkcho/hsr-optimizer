@@ -35,12 +35,18 @@ describe('characterData registry', () => {
     expect(trigger.selector?.abilityKind).toBe(AbilityKind.FUA)
   })
 
-  test('Topaz: FUA trigger + Numby memo entity', () => {
+  test('Topaz: Numby memo with own-clock FUA + advanceOnTeammateAttack', () => {
     const data = resolveCharacterData('1112' as CharacterId)
-    expect(data.fuaTriggers?.[0].on).toBe('teammateAttackVsTarget')
-    expect(data.fuaTriggers?.[0].conditionMark).toBe('numbyMark')
     expect(data.memo?.entityName).toBe('Numby')
-    expect(data.memo?.spdSource).toBe('entityDefinition')
+    expect(data.memo?.entitySpd).toBe(80)
+    expect(data.memo?.onTurn?.abilityKind).toBe(AbilityKind.FUA)
+    const advance = data.memo?.advanceOnTeammateAttack
+    expect(advance?.avPercent).toBe(0.5)
+    expect(advance?.conditionMark).toBe('numbyMark')
+    expect(advance?.abilityKindFilter).toEqual([AbilityKind.BASIC, AbilityKind.SKILL, AbilityKind.ULT])
+    // Topaz no longer uses fuaTriggers — Numby acts on its own clock, not as a follow-up
+    // trigger off ally attacks.
+    expect(data.fuaTriggers).toBeUndefined()
   })
 
   test('Robin: ult advances every other ally 100% AV', () => {

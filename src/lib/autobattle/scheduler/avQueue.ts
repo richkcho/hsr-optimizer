@@ -55,6 +55,22 @@ export function advancePercent(
   clock.remainingAv = Math.max(0, clock.remainingAv - delta)
 }
 
+// Advance a non-primary actor clock (memo/summon) by avPercent of its baseline AV. Used
+// by mechanisms like Topaz's Talent ("ally attack on PoD enemy advances Numby's gauge by
+// 50%"). Identical semantics to advancePercent, but resolves the clock by its full ActorId
+// so the memo's own SPD-derived baseline is used — not the owner's.
+export function advanceActorPercent(
+  state: BattleState,
+  actorId: ActorId,
+  spd: number,
+  avPercent: number,
+): void {
+  const clock = findClock(state, actorId)
+  if (!clock) return
+  const delta = avPercent * avFromSpd(spd)
+  clock.remainingAv = Math.max(0, clock.remainingAv - delta)
+}
+
 // Delay is the inverse — increases remainingAv. Same percentage semantics.
 export function delayPercent(
   state: BattleState,
