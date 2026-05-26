@@ -36,6 +36,21 @@ export const RobinData: CharacterData = {
     [AbilityKind.ULT]: { target: 'allAllies', avPercent: 100 },
   },
   grantsBuffsOnAction: {
+    [AbilityKind.SKILL]: [
+      {
+        // Pinion's Aria: team ATK+DMG buff that lasts 3 of Robin's turns. The buff is
+        // tracked purely as a tendency signal — the stat values themselves flow through
+        // optimizer conditionals at context build, so we don't need a statOverride. The
+        // tick-on-application off-by-one (turnsOnSource ticks at the end of the turn it
+        // was applied on) means remaining=3 covers turns 1-3 inclusive of the cast turn.
+        target: 'self',
+        buff: {
+          id: 'Robin.pinionsAria',
+          remaining: 3,
+          mode: 'turnsOnSource',
+        },
+      },
+    ],
     [AbilityKind.ULT]: [
       {
         target: 'self',

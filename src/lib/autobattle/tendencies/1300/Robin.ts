@@ -2,17 +2,22 @@ import { fieldBufferTendency } from 'lib/autobattle/tendencies/archetypes/fieldB
 import type { ChosenAbility, Tendency, TendencyCtx } from 'lib/autobattle/types'
 import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 
-// Robin's skill (Pinion's Aria) costs 1 SP and applies a team ATK%/DMG% buff plus refunds 30
-// energy to her (35 with Sequential Passage trace). The reference defaults skill use to
-// "whenever SP >= 1" — the synergy team's SP economy gates her naturally as Topaz consumes SP
-// for her primary attacks. Basic when SP is too low to cover the skill cost.
+// Robin's role: maintain Pinion's Aria team buff uptime, basic otherwise. The buff is
+// applied by her skill (Robin.pinionsAria, turnsOnSource: 3) — once active she basics to
+// preserve SP for the team's DPS (typically Topaz/Feixiao/etc.). Basics still feed her
+// energy at the standard 20/turn so her ult cadence isn't starved. When SP is too low to
+// cover the skill cost, basic regardless.
 export const RobinTendency: Tendency = {
   ...fieldBufferTendency,
   decideTurn(ctx: TendencyCtx): ChosenAbility {
     const cost = ctx.spCost(AbilityKind.SKILL)
-    if (ctx.sp() >= cost) {
-      return { kind: AbilityKind.SKILL, reason: `sp ${ctx.sp()}>=${cost}` }
+    const sp = ctx.sp()
+    if (sp < cost) {
+      return { kind: AbilityKind.BASIC, reason: `sp ${sp}<${cost} — feed energy via basic` }
     }
-    return { kind: AbilityKind.BASIC, reason: 'sp<cost — feed energy via basic' }
+    if (ctx.hasActiveBuff('Robin.pinionsAria')) {
+      return { kind: AbilityKind.BASIC, reason: 'pinionsAria active — preserve sp for dps' }
+    }
+    return { kind: AbilityKind.SKILL, reason: 'refresh pinionsAria' }
   },
 }

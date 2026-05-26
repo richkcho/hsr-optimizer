@@ -34,6 +34,24 @@ export const AventurineData: CharacterData = {
       onEnemyTurnApprox: 1.3,
     },
   },
+  // Shield-maintenance buff (Aventurine.shield). Both skill (Cornerstone Deluxe — single
+  // ally shield) and ult (Roulette Shark — team shield) refresh it. Used purely as a
+  // tendency signal: when active, Aventurine basics to preserve SP; when down, he skills.
+  // turnsOnSource:3 approximates the 3-turn shield duration measured on Aventurine's clock.
+  grantsBuffsOnAction: {
+    [AbilityKind.SKILL]: [
+      {
+        target: 'self',
+        buff: { id: 'Aventurine.shield', remaining: 3, mode: 'turnsOnSource' },
+      },
+    ],
+    [AbilityKind.ULT]: [
+      {
+        target: 'self',
+        buff: { id: 'Aventurine.shield', remaining: 3, mode: 'turnsOnSource' },
+      },
+    ],
+  },
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'allEnemies',  // AoE Imaginary attack (Imaginary Numinosity)
     [AbilityKind.ULT]: 'allEnemies',

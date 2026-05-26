@@ -735,3 +735,74 @@ describe('FuaStackPool: Aventurine-shaped Blind Bet stack pool', () => {
     expect(fuaFires).toBeGreaterThanOrEqual(1)
   })
 })
+
+describe('support/sustain tendencies: buff-driven skill cadence', () => {
+  // Robin and Aventurine both gate their skill use on a self-buff: skill only when the
+  // buff is down (applied/refreshed by skill itself, plus ult for Aventurine). The buff
+  // ticks on the owner's primary turns, so cadence ends up ~1 skill per 3 turns.
+  test('Robin: skills first turn then basics while Pinion\'s Aria buff active', () => {
+    // Robin alone — no teammates to drain SP, so she has SP every turn. Confirms the
+    // skill→basic→basic→skill cadence comes from the buff check, not SP gating.
+    const robin: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: '1309' as CharacterId }
+
+    const result = runAutobattle(
+      makeInput([robin], { totalAv: 700, enemySpd: 10 }),
+      { resolver: createMockDamageResolver({
+        BASIC: 100,
+        SKILL: 250,
+        ULT: 0,
+        FUA: 150,
+        UNIQUE: 0,
+      } as Partial<Record<AbilityKind, number>>) },
+    )
+
+    const turnActions = result.log
+      .filter((e) => e.kind === AbilityKind.BASIC || e.kind === AbilityKind.SKILL)
+      .map((e) => e.kind)
+    // First action: SKILL (buff hasn't been applied yet).
+    expect(turnActions[0]).toBe(AbilityKind.SKILL)
+    // The next 2 actions should be BASIC (Pinion's Aria active for 3 of Robin's turns).
+    expect(turnActions[1]).toBe(AbilityKind.BASIC)
+    expect(turnActions[2]).toBe(AbilityKind.BASIC)
+    // Fourth action: buff expires → SKILL again.
+    expect(turnActions[3]).toBe(AbilityKind.SKILL)
+  })
+
+  test('Aventurine: skills first turn then basics while shield buff active', () => {
+    const aventurine: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: '1304' as CharacterId }
+
+    const result = runAutobattle(
+      makeInput([aventurine], { totalAv: 700, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    const turnActions = result.log
+      .filter((e) => e.kind === AbilityKind.BASIC || e.kind === AbilityKind.SKILL)
+      .map((e) => e.kind)
+    // First action: SKILL (no shield buff yet). Then 2 BASICs while shield is up. Then SKILL.
+    expect(turnActions[0]).toBe(AbilityKind.SKILL)
+    expect(turnActions[1]).toBe(AbilityKind.BASIC)
+    expect(turnActions[2]).toBe(AbilityKind.BASIC)
+    expect(turnActions[3]).toBe(AbilityKind.SKILL)
+  })
+
+  test('Robin: SP starvation forces basic even when buff is down', () => {
+    // Greedy SP-consumer in slot 0 drains the pool — Robin can't afford to skill.
+    const greedy: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: '1112' as CharacterId }  // Topaz, skill-greedy
+    const robin: TeamMemberInput = { ...makeMember(1, 100, 9999), characterId: '1309' as CharacterId }
+
+    const result = runAutobattle(
+      makeInput([greedy, robin], { totalAv: 600, enemySpd: 10 }),
+      { resolver: createMockDamageResolver() },
+    )
+
+    // Robin's actions: should contain BASICs even when Pinion's Aria is down — SP starvation
+    // takes precedence over buff refresh. We just confirm she takes at least one BASIC.
+    const robinBasics = result.log.filter((e) =>
+      e.actor.slot === 1
+      && e.actor.kind === 'primary'
+      && e.kind === AbilityKind.BASIC
+    ).length
+    expect(robinBasics).toBeGreaterThan(0)
+  })
+})

@@ -129,24 +129,30 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after Aventurine's FUA mechanic switched from a count-based
-// `fuaTriggers` heuristic to the `fuaStackPool` (Blind Bet) framework. Per-character deltas:
-//   - Aventurine total: 3.97M → 3.80M (-4.2%). FUA component rose (1.51M, up from prior),
-//     ULT component fell (0.92M from removing the v1Approx flat enemy-turn energy drip).
-//   - Sparkle/Feixiao/Robin within ±1.5% (Sparkle's BREAK shifted slightly as Aventurine
-//     now grabs more break credits via the additional FUA fires).
+// Golden refrozen on 2026-05-25 after Robin/Aventurine tendency refinements:
+//   - Robin: skill only when Pinion's Aria buff is down (turnsOnSource: 3); basic otherwise
+//     to preserve SP for the team's DPS. Shifts her from ~all-skill to ~1/3 skill cadence.
+//   - Aventurine: skill only when Aventurine.shield buff is down (turnsOnSource: 3); basic
+//     otherwise. The buff refreshes on both his skill and ult, so ult-cycle uptime keeps
+//     him at near-zero skill use after the opening turn.
+// Per-character deltas vs the prior pre-tendency-change golden:
+//   - Feixiao total: 24.4M → 22.5M (-8%). She gets fewer Robin-Concerto advances since
+//     Robin ults less frequently when she's mixing in basics.
+//   - Robin total: 2.91M → 2.14M (-27%). Fewer ult cycles → fewer UNIQUE Concerto fires.
+//   - Aventurine total: 3.80M → 3.22M (-15%). One fewer ult per the cascade above.
+//   - Sparkle within ±3%.
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 31408920,
-  feixiaoTotal: 24419931,
-  feixiaoFua: 5982967,
-  feixiaoUlt: 13018076,
-  feixiaoBreak: 147888,
-  robinTotal: 2914371,
-  robinUnique: 2914371,
-  sparkleTotal: 271087,
-  aventurineTotal: 3803529,
+  grandTotal: 28100970,
+  feixiaoTotal: 22465272,
+  feixiaoFua: 5519999,
+  feixiaoUlt: 11610716,
+  feixiaoBreak: 117068,
+  robinTotal: 2137094,
+  robinUnique: 1754570,
+  sparkleTotal: 279998,
+  aventurineTotal: 3218604,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {
