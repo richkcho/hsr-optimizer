@@ -1,3 +1,4 @@
+import { relicToSimulationRelic } from 'lib/autobattle/relicConversion'
 import type {
   AutobattleInput,
   SlotIndex,
@@ -6,7 +7,6 @@ import type {
 import { SLOT_INDEXES } from 'lib/autobattle/types'
 import { runAutobattleViaWorker } from 'lib/autobattle/worker/autobattleWorkerRunner'
 import { Parts } from 'lib/constants/constants'
-import { BasicStatToKey } from 'lib/optimization/basicStatsArray'
 import type { SimulationRelic } from 'lib/simulations/statSimulationTypes'
 import { useAutobattleStore } from 'lib/stores/autobattle/autobattleStore'
 import {
@@ -14,12 +14,8 @@ import {
 } from 'lib/stores/character/characterStore'
 import { getRelicById } from 'lib/stores/relic/relicStore'
 import { getGameMetadata } from 'lib/state/gameMetadata'
-import { isFlat } from 'lib/utils/statUtils'
-import { precisionRound } from 'lib/utils/mathUtils'
 import { useCallback } from 'react'
 import type { CharacterId } from 'types/character'
-import type { Relic } from 'types/relic'
-import type { StatsValues } from 'lib/constants/constants'
 
 interface CharacterMetaForSim {
   baseSpd: number
@@ -36,22 +32,6 @@ function readCharacterMeta(characterId: CharacterId): CharacterMetaForSim | null
     maxEnergy: character.max_sp ?? 100,
     path: character.path,
   }
-}
-
-function relicToSimulationRelic(relic: Relic): SimulationRelic {
-  const condensedStats: [number, number][] = []
-  for (const substat of relic.substats) {
-    const key = BasicStatToKey[substat.stat]
-    const scale = isFlat(substat.stat) ? 1 : 0.01
-    condensedStats.push([key, precisionRound(substat.value * scale)])
-  }
-  if (relic.augmentedStats) {
-    condensedStats.push([
-      BasicStatToKey[relic.augmentedStats.mainStat as StatsValues],
-      relic.augmentedStats.mainValue,
-    ])
-  }
-  return { set: relic.set, condensedStats }
 }
 
 function resolveEquippedRelics(characterId: CharacterId): Partial<Record<Parts, SimulationRelic>> {
