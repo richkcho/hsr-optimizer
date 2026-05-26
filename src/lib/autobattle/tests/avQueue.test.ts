@@ -94,11 +94,11 @@ describe('findClock', () => {
     const state = {
       clocks: [
         { id: { slot: 0, kind: 'primary' }, remainingAv: 1 },
-        { id: { slot: 0, kind: 'memo', entityName: 'Numby' }, remainingAv: 2 },
+        { id: { slot: 0, kind: 'summon', entityName: 'Numby' }, remainingAv: 2 },
       ],
     } as unknown as BattleState
     expect(findClock(state, { slot: 0, kind: 'primary' })?.remainingAv).toBe(1)
-    expect(findClock(state, { slot: 0, kind: 'memo', entityName: 'Numby' })?.remainingAv).toBe(2)
-    expect(findClock(state, { slot: 0, kind: 'memo', entityName: 'Other' })).toBeUndefined()
+    expect(findClock(state, { slot: 0, kind: 'summon', entityName: 'Numby' })?.remainingAv).toBe(2)
+    expect(findClock(state, { slot: 0, kind: 'summon', entityName: 'Other' })).toBeUndefined()
   })
 })

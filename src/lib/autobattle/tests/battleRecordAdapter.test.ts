@@ -38,7 +38,7 @@ function makeResult(log: TurnLogEntry[], finalElapsedAv: number): AutobattleResu
 
 describe('toBattleRecordOutcome', () => {
   const topaz: ActorId = { slot: 0, kind: 'primary' }
-  const numby: ActorId = { slot: 0, kind: 'memo', entityName: 'Numby' }
+  const numby: ActorId = { slot: 0, kind: 'summon', entityName: 'Numby' }
   const robin: ActorId = { slot: 1, kind: 'primary' }
   const team = [
     { slot: 0 as SlotIndex, characterId: '1112' as const },
@@ -75,7 +75,7 @@ describe('toBattleRecordOutcome', () => {
     expect(basic?.outOfTurn).toBeUndefined()
   })
 
-  test('memo actor produces a separate byActor bucket on the same slot', () => {
+  test('summon actor produces a separate byActor bucket on the same slot', () => {
     const log = [
       makeEntry(topaz, AbilityKind.BASIC, 1000, 100),
       makeEntry(numby, AbilityKind.FUA, 5000, 100),
@@ -84,14 +84,14 @@ describe('toBattleRecordOutcome', () => {
     const out = toBattleRecordOutcome(makeResult(log, 200), { team })
 
     const primary = out.byActor.find((a) => a.slot === 0 && (a.actorKind ?? 'primary') === 'primary')
-    const memo = out.byActor.find((a) => a.slot === 0 && a.actorKind === 'memo')
+    const summon = out.byActor.find((a) => a.slot === 0 && a.actorKind === 'summon')
     expect(primary).toBeDefined()
-    expect(memo).toBeDefined()
+    expect(summon).toBeDefined()
     expect(primary!.totalDamage).toBe(1000)
-    expect(memo!.totalDamage).toBe(10000)
-    expect(memo!.bySkillType[AbilityKind.FUA]).toBe(10000)
-    expect(memo!.skillUseCount![AbilityKind.FUA]).toBe(2)
-    expect(memo!.characterId).toBe('1112')   // memo inherits owner's characterId
+    expect(summon!.totalDamage).toBe(10000)
+    expect(summon!.bySkillType[AbilityKind.FUA]).toBe(10000)
+    expect(summon!.skillUseCount![AbilityKind.FUA]).toBe(2)
+    expect(summon!.characterId).toBe('1112')   // summon inherits owner's characterId
   })
 
   test('omits actorKind in output when primary (schema convention)', () => {

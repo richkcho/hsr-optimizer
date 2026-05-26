@@ -25,8 +25,10 @@ describe('DamageLedger', () => {
   test('separates memo/summon from primary by ActorId key', () => {
     const ledger = createLedger()
     addDamage(ledger, { slot: 0, kind: 'primary' }, AbilityKind.BASIC, 100)
-    addDamage(ledger, { slot: 0, kind: 'memo', entityName: 'Numby' }, AbilityKind.FUA, 200)
+    addDamage(ledger, { slot: 0, kind: 'summon', entityName: 'Numby' }, AbilityKind.FUA, 200)
+    addDamage(ledger, { slot: 1, kind: 'memo', entityName: 'Ica' }, AbilityKind.SKILL, 300)
     expect(ledger.totalsByActor['0:primary']).toBe(100)
-    expect(ledger.totalsByActor['0:memo:Numby']).toBe(200)
+    expect(ledger.totalsByActor['0:summon:Numby']).toBe(200)
+    expect(ledger.totalsByActor['1:memo:Ica']).toBe(300)
   })
 })

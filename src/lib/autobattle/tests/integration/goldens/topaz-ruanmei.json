@@ -1,8 +1,8 @@
 {
   "name": "topaz-ruanmei",
-  "description": "Topaz / Ruan Mei / Robin / Aventurine — multi-enemy (1 boss + 2 elites), ~3 cycles in reference UI",
+  "description": "Topaz / Ruan Mei / Robin / Aventurine \u2014 multi-enemy (1 boss + 2 elites), ~3 cycles in reference UI",
   "captureDate": "2026-05-24",
-  "captureNotes": "Extracted via .tmp/ext/extract-battle-record.cjs from raw log at .tmp/raw-battle-log-topaz.json. Some relic 4pc sets (Ruan Mei, Robin, Aventurine) inferred from canonical builds since passive 4pc bonuses don't emit BuffApply entries. enemySpd/enemyMaxToughness averaged across boss (SPD 158, tough 140) and 2 elites (SPD 132, tough 100). Substats are synthesized by buildFixtures.defaultRollLayout (1 high roll per priority substat per relic; ~4 rolls per substat per character total) — this is a placeholder until a real Kel-Z dump of the captured player's relics is added alongside the golden. totalDamage tolerance is wider (35%) to absorb the placeholder calibration drift; tighten once real relic data lands.",
+  "captureNotes": "Extracted via .tmp/ext/extract-battle-record.cjs from raw log at .tmp/raw-battle-log-topaz.json. Some relic 4pc sets (Ruan Mei, Robin, Aventurine) inferred from canonical builds since passive 4pc bonuses don't emit BuffApply entries. enemySpd/enemyMaxToughness averaged across boss (SPD 158, tough 140) and 2 elites (SPD 132, tough 100). Substats are synthesized by buildFixtures.defaultRollLayout (1 high roll per priority substat per relic; ~4 rolls per substat per character total) \u2014 this is a placeholder until a real Kel-Z dump of the captured player's relics is added alongside the golden. totalDamage tolerance is wider (35%) to absorb the placeholder calibration drift; tighten once real relic data lands.",
   "team": [
     {
       "slot": 0,
@@ -186,9 +186,9 @@
           "turnsTaken": 7
         },
         {
-          "actorKey": "ally:0:memo",
+          "actorKey": "ally:0:summon",
           "slot": 0,
-          "actorKind": "memo",
+          "actorKind": "summon",
           "totalDamage": 1116375.964127894,
           "bySkillType": {
             "FUA": 1116375.964127894
@@ -399,7 +399,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -419,7 +419,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -488,7 +488,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -508,7 +508,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -566,7 +566,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -586,7 +586,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -651,7 +651,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -693,7 +693,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -769,7 +769,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -789,7 +789,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -918,7 +918,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -938,7 +938,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1001,7 +1001,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1021,7 +1021,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1142,7 +1142,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1162,7 +1162,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1300,7 +1300,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1309,7 +1309,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1494,7 +1494,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1514,7 +1514,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1630,7 +1630,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1650,7 +1650,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1708,7 +1708,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1728,7 +1728,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1793,7 +1793,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1813,7 +1813,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -1918,7 +1918,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -1938,7 +1938,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -2155,7 +2155,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -2164,7 +2164,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -2224,7 +2224,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -2233,7 +2233,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -2278,7 +2278,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -2287,7 +2287,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -2505,7 +2505,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "TURN_START"
         },
@@ -2525,7 +2525,7 @@
           "actor": {
             "kind": "ally",
             "slot": 0,
-            "actorKind": "memo"
+            "actorKind": "summon"
           },
           "kind": "ABILITY",
           "ability": "FUA",
@@ -2568,7 +2568,7 @@
   },
   "expectedDrift": [
     "slot0 (Topaz): our sim folds Numby memo damage into primary FUA. Reference splits primary (~374k) from memo (~1.12M). Per-slot combined totals match within ~10%.",
-    "slot1 (Ruan Mei): missing ~119k BREAK from her break-zone passive (GenericAbilityStart events on enemy weakness recovery — not yet modeled in scheduler).",
+    "slot1 (Ruan Mei): missing ~119k BREAK from her break-zone passive (GenericAbilityStart events on enemy weakness recovery \u2014 not yet modeled in scheduler).",
     "slot2 (Robin): missing ~430k UNIQUE damage from Flowing Nightglow LC (per-teammate-attack Additional proc not yet triggered on teammate actions; see issue #3).",
     "slot3 (Aventurine): systematically low across BASIC / FUA / ULT (~70-82% under). Likely buff-propagation gap (Topaz Ashblazing 4pc, Robin Concerto, Ruan Mei Overtone) not all reaching teammates correctly.",
     "slot0 BREAK: per-enemy gauges now credit each attacker independently. Topaz only breaks the boss (toughness 140) via her single-target attacks; AoE breakers (Aventurine, Ruan Mei) break the elites. Expect slot0 BREAK to drop substantially from the old +178% over-attribution."

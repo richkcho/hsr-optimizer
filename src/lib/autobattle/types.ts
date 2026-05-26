@@ -319,6 +319,12 @@ export interface FuaStackPool {
 
 export interface MemoData {
   entityName: string  // matches the character's entityDeclaration() value
+  // Which ActorKind to surface this entity as. Distinguishes pure summons (Numby, Fuyuan
+  // — no HP, no energy, fixed action repertoire) from memosprites (Path of Remembrance:
+  // Ica, Netherwing — have HP, energy, multiple abilities). Defaults to 'memo' for the
+  // memosprite case; explicitly set to 'summon' for summons. The actorKind threads through
+  // serializeActorId → ledger keys → BattleRecord outcome's actorKind field.
+  actorKind?: 'memo' | 'summon'
   // 'entityDefinition' = use the EntityDefinition.memoBaseSpd{Flat,Scaling} fields directly.
   // { fromOwnerSpd: f } = memo SPD = owner SPD * f (Hyacine/Ica style).
   spdSource: 'entityDefinition' | { fromOwnerSpd: number }

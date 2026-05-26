@@ -566,7 +566,7 @@ function fireFuaTriggers(state: BattleState, source: ActorId, kind: AbilityKind,
       // aggregations as a separate bucket from numeric-slot entries.
       const memo = member.characterData.memo
       const fuaActor: ActorId = memo && memo.onTurn?.abilityKind === fuaKind
-        ? { slot: member.slot, kind: 'memo', entityName: memo.entityName }
+        ? { slot: member.slot, kind: memo.actorKind ?? 'memo', entityName: memo.entityName }
         : { slot: member.slot, kind: 'primary' }
       executeAbility(state, fuaActor, { kind: fuaKind, reason: `fua trigger ${trigger.id}` }, resolver, 0)
     }

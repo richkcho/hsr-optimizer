@@ -58,7 +58,11 @@ export function createInitialBattleState(
     const tendency = resolveTendency(inputMember.characterId, inputMember.path)
     const actors: ActorId[] = [{ slot: inputMember.slot, kind: 'primary' }]
     if (characterData.memo) {
-      actors.push({ slot: inputMember.slot, kind: 'memo', entityName: characterData.memo.entityName })
+      actors.push({
+        slot: inputMember.slot,
+        kind: characterData.memo.actorKind ?? 'memo',
+        entityName: characterData.memo.entityName,
+      })
     }
 
     // Snapshot stats from the resolver pipeline — captures relic main+sub + traces + LC +

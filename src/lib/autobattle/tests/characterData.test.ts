@@ -38,6 +38,7 @@ describe('characterData registry', () => {
   test('Topaz: Numby memo with own-clock FUA + advanceOnTeammateAttack', () => {
     const data = resolveCharacterData('1112' as CharacterId)
     expect(data.memo?.entityName).toBe('Numby')
+    expect(data.memo?.actorKind).toBe('summon')  // Numby is a pet/summon, not a memosprite
     expect(data.memo?.entitySpd).toBe(80)
     expect(data.memo?.onTurn?.abilityKind).toBe(AbilityKind.FUA)
     const advance = data.memo?.advanceOnTeammateAttack

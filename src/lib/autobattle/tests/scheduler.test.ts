@@ -451,7 +451,7 @@ describe('memo/summon own-turn fire', () => {
 
   test('Topaz Numby damage attributes to memo bucket, never to primary FUA', () => {
     // Numby fires only on its own 80-SPD clock (no fuaTrigger). Ally BASIC/SKILL/ULTs
-    // advance the clock 50% via Talent. Either way, the damage lives in slot0:memo:Numby
+    // advance the clock 50% via Talent. Either way, the damage lives in slot0:summon:Numby
     // and slot0:primary must stay free of any FUA contribution — this is the load-bearing
     // attribution shape the topaz-ruanmei golden expects.
     const topaz: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: '1112' as CharacterId }
@@ -462,7 +462,7 @@ describe('memo/summon own-turn fire', () => {
       { resolver: createMockDamageResolver() },
     )
 
-    const memoFua = result.ledger.byActorBySource['0:memo:Numby']?.FUA ?? 0
+    const memoFua = result.ledger.byActorBySource['0:summon:Numby']?.FUA ?? 0
     expect(memoFua).toBeGreaterThan(0)
     const primaryFua = result.ledger.byActorBySource['0:primary']?.FUA ?? 0
     expect(primaryFua).toBe(0)

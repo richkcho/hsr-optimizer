@@ -10,6 +10,7 @@ import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 export const TopazData: CharacterData = {
   memo: {
     entityName: 'Numby',
+    actorKind: 'summon',  // Numby is a pet/summon (no HP, no energy), not a memosprite
     spdSource: 'entityDefinition',
     entitySpd: 80,
     // Numby does not feed Topaz energy on actions — Topaz only gains energy from her own.
