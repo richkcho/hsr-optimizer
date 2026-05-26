@@ -276,6 +276,68 @@ describe('break damage', () => {
     expect(firstEnemyTurn!.elapsedAv).toBeLessThanOrEqual(126)
   })
 
+  test('onEnemyWeaknessRecovery fires a BREAK credit on the listener when an enemy recovers (gated by required buff)', () => {
+    const listenerId = '9998' as CharacterId
+    registerCharacterData(listenerId, {
+      grantsBuffsOnAction: {
+        [AbilityKind.SKILL]: [{
+          target: 'self',
+          buff: { id: 'TestListener.marker', remaining: 100, mode: 'turnsOnSource' },
+        }],
+      },
+      onEnemyWeaknessRecovery: {
+        requiresActiveBuff: 'TestListener.marker',
+        firedAs: AbilityKind.BREAK,
+      },
+    })
+    const listener: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: listenerId }
+
+    // tough=60 → second SKILL breaks (30 tough × 2). The break sets brokenForEnemyTurns=1;
+    // the next enemy turn ticks it to 0, recovering the enemy and firing the listener.
+    // The marker buff is applied on the first SKILL so it's active by the time recovery
+    // happens. enemySpd=200
+    // turn ticks it to 0, recovering the enemy and firing the listener. enemySpd=200
+    // ensures the enemy turn fires inside the 600 AV window.
+    const result = runAutobattle(
+      makeInput([listener], { totalAv: 600, enemySpd: 200, enemies: enemies(60) }),
+      {
+        resolver: createMockDamageResolver(
+          { BASIC: 50, SKILL: 100, ULT: 500 },
+          { toughnessDmgPerHit: { BASIC: 60, SKILL: 30 }, breakDmg: 2000 },
+        ),
+      },
+    )
+
+    const breakEntries = result.log.filter((e) => e.kind === 'BREAK')
+    const recoveryFired = breakEntries.find((e) => e.description.includes('weakness-recovery'))
+    expect(recoveryFired).toBeDefined()
+    expect(recoveryFired!.damage).toBe(2000)
+  })
+
+  test('onEnemyWeaknessRecovery does not fire when the required buff is absent', () => {
+    const listenerId = '9997' as CharacterId
+    registerCharacterData(listenerId, {
+      onEnemyWeaknessRecovery: {
+        requiresActiveBuff: 'TestListener.never-applied',
+        firedAs: AbilityKind.BREAK,
+      },
+    })
+    const listener: TeamMemberInput = { ...makeMember(0, 100, 9999), characterId: listenerId }
+
+    const result = runAutobattle(
+      makeInput([listener], { totalAv: 600, enemySpd: 200, enemies: enemies(60) }),
+      {
+        resolver: createMockDamageResolver(
+          { BASIC: 50, SKILL: 100, ULT: 500 },
+          { toughnessDmgPerHit: { BASIC: 60, SKILL: 30 }, breakDmg: 2000 },
+        ),
+      },
+    )
+
+    const recoveryFired = result.log.find((e) => e.kind === 'BREAK' && e.description.includes('weakness-recovery'))
+    expect(recoveryFired).toBeUndefined()
+  })
+
   test('action.config.enemyWeaknessBroken flips true after the target enemy breaks', () => {
     // Real preBuiltActions only exist when buildResolvers: true (the real pipeline path).
     // For a focused unit test we stuff a stub action object on first resolve so the

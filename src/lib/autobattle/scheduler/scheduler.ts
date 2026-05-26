@@ -124,6 +124,45 @@ function advanceTime(state: BattleState, dt: number): void {
   tickAvBuffs(state, dt)
 }
 
+// Fires CharacterData.onEnemyWeaknessRecovery listeners when an enemy recovers from break.
+// The listener's stat container is primed via a no-op resolve() (we discard the result —
+// resolve() only writes to the slot's ComputedStatsContainer, not the ledger), then
+// resolveBreak reads break damage attributed to the listener and credited to the listener's
+// chosen AbilityKind. v1 hardcodes the priming to BASIC since every character has one and
+// the kit-specific element comes from the listener's context.element rather than the hit.
+function fireWeaknessRecoveryListeners(
+  state: BattleState,
+  resolver: DamageResolver,
+  enemyIndex: number,
+): void {
+  for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
+    const member = state.members[slot]
+    if (!member) continue
+    const listener = member.characterData.onEnemyWeaknessRecovery
+    if (!listener) continue
+    if (!hasActiveBuff(state, listener.requiresActiveBuff)) continue
+    if (!resolver.resolveBreak) continue
+
+    const listenerActor: ActorId = { slot, kind: 'primary' }
+    // Prime the listener's slot via BASIC resolve so the ComputedStatsContainer holds
+    // fresh action-level stats. Discarding the returned AbilityResolution skips damage
+    // attribution; only the priming side-effect is consumed.
+    resolver.resolve(state, listenerActor, AbilityKind.BASIC)
+    const breakDmg = resolver.resolveBreak(state, slot, state.enemy.maxToughness[enemyIndex])
+    if (breakDmg <= 0) continue
+
+    addDamage(state.ledger, listenerActor, listener.firedAs, breakDmg)
+    appendLog(state, {
+      elapsedAv: state.elapsedAv,
+      deltaAv: 0,
+      actor: listenerActor,
+      kind: listener.firedAs,
+      description: `${member.characterId} weakness-recovery proc on enemy ${enemyIndex}`,
+      damage: breakDmg,
+    })
+  }
+}
+
 function minEnemyClock(clockAv: number[]): number {
   if (clockAv.length === 0) return Number.POSITIVE_INFINITY
   let min = clockAv[0]
@@ -223,7 +262,15 @@ function resetClockFor(state: BattleState, actorId: ActorId, spd: number): void 
 // are read as "per per-enemy turn" — characters tuned against single-enemy goldens may
 // run hot in multi-enemy scenarios until re-calibrated.
 function processEnemyTurn(state: BattleState, resolver: DamageResolver, enemyIndex: number): void {
+  // Capture broken state pre-tick so we can detect a broken → unbroken transition for
+  // weakness-recovery listeners (e.g. Ruan Mei's Thanataplum Rebloom).
+  const wasBroken = state.enemy.brokenForEnemyTurns[enemyIndex] !== undefined
+
   const firing = onEnemyTurn(state.enemy, enemyIndex)
+
+  if (wasBroken && state.enemy.brokenForEnemyTurns[enemyIndex] === undefined) {
+    fireWeaknessRecoveryListeners(state, resolver, enemyIndex)
+  }
 
   tickTurnsOnEnemy(state)
 

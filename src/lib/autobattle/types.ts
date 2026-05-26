@@ -437,6 +437,17 @@ export interface CharacterData {
   // (e.g. Robin's "Overture of Inebriation" technique: +5 energy on wave start).
   battleStartBonusEnergy?: number
 
+  // Fires when an enemy recovers from weakness break (transitions broken → unbroken on its
+  // own turn). v1 hardcodes the firedAs case to BREAK damage credited to the listener,
+  // using the listener's stat container + the broken enemy's maxToughness via
+  // resolver.resolveBreak. Gated on `requiresActiveBuff` — the listener must have the
+  // named buff active (typically a self-marker applied by their own ult creating a field,
+  // e.g. Ruan Mei's RuanMei.ultField for Thanataplum Rebloom).
+  onEnemyWeaknessRecovery?: {
+    requiresActiveBuff: string
+    firedAs: AbilityKind
+  }
+
   // v1 approximation flags for mechanics we don't fully simulate.
   v1Approx?: {
     // For Aventurine/Clara/Fu Xuan/March 7th: enemies don't attack, so we
