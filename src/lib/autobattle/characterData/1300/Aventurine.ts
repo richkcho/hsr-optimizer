@@ -34,21 +34,32 @@ export const AventurineData: CharacterData = {
       onEnemyTurnApprox: 1.3,
     },
   },
-  // Shield-maintenance buff (Aventurine.shield). Both skill (Cornerstone Deluxe — single
-  // ally shield) and ult (Roulette Shark — team shield) refresh it. Used purely as a
-  // tendency signal: when active, Aventurine basics to preserve SP; when down, he skills.
-  // turnsOnSource:3 approximates the 3-turn shield duration measured on Aventurine's clock.
+  // Per gamedata (SkillID 130402 "Cornerstone Deluxe" / 130403 "Roulette Shark"):
+  //   - SKILL provides Fortified Wager shield to ALL allies for 3 turns. Buff-style
+  //     (per-ally turnsOnTarget), so target:'eachAlly' fans out one ActiveBuff per ally
+  //     including Aventurine; each entry ticks on its bound ally's turn.
+  //   - ULT inflicts "Unnerved" on ONE designated enemy target for 3 turns. Single-enemy
+  //     debuff (kind:'enemy' via target:'enemy', mode:'turnsOnEnemy'). The team-wide CR DMG
+  //     buff in Aventurine's kit is gated on "an ally hits an Unnerved enemy" — modeled
+  //     here via a separate conditional flag (`enemyUnnervedDebuff`) the debuff drives.
+  //   - At E2+, the Ult also extends Fortified Wager to allies, and at E4+ the talent FUA
+  //     becomes 10 hits. We don't model eidolon-conditional grants here yet — current data
+  //     reflects the E0 kit. TODO: thread eidolon through characterData to express the
+  //     E2 shield-on-ult and E4 FUA-hit-bump.
   grantsBuffsOnAction: {
     [AbilityKind.SKILL]: [
       {
-        target: 'self',
-        buff: { id: 'Aventurine.shield', remaining: 3, mode: 'turnsOnSource' },
+        target: 'eachAlly',
+        buff: { id: 'Aventurine.shield', remaining: 3, mode: 'turnsOnTarget', conditionalKey: 'fortifiedWagerBuff' },
       },
     ],
     [AbilityKind.ULT]: [
       {
-        target: 'self',
-        buff: { id: 'Aventurine.shield', remaining: 3, mode: 'turnsOnSource' },
+        // Single-enemy "Unnerved" debuff. Drives the `enemyUnnervedDebuff` teammate
+        // conditional that gates Aventurine's team CR DMG buff in
+        // precomputeTeammateEffectsContainer.
+        target: 'enemy',
+        buff: { id: 'Aventurine.unnerved', remaining: 3, mode: 'turnsOnEnemy', conditionalKey: 'enemyUnnervedDebuff' },
       },
     ],
   },

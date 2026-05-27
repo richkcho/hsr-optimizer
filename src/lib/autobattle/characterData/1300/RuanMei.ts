@@ -26,21 +26,46 @@ export const RuanMeiData: CharacterData = {
   grantsBuffsOnAction: {
     [AbilityKind.SKILL]: [
       {
-        target: 'self',
+        // Overtone — FIELD/self-state per gamedata SkillID 130302 ("Ruan Mei gains Overtone,
+        // lasting for #3[i] turn(s). This duration decreases by 1 at the start of Ruan Mei's
+        // every turn." ParamList[2]=3). target:'team' so the conditional flag propagates to
+        // every resolver via buffAppliesToActor.
+        target: 'team',
         buff: {
           id: 'RuanMei.overtone',
-          remaining: 3,            // 3 turns of Ruan Mei's own turns
+          remaining: 3,
           mode: 'turnsOnSource',
+          conditionalKey: 'skillOvertoneBuff',
         },
       },
     ],
     [AbilityKind.ULT]: [
       {
-        target: 'self',
+        // Zone — FIELD deployed by Ult per gamedata SkillID 130303 ("Ruan Mei deploys a Zone
+        // that lasts for #2[i] turns. The Zone's duration decreases by 1 at the start of her
+        // turn." ParamList[1]=2). Drives `ultFieldActive` teammate conditional which gates
+        // RES PEN (and E1 DEF PEN) team-wide. Also serves as the sim-side gate for
+        // Thanataplum Rebloom break-damage proc (onEnemyWeaknessRecovery requiresActiveBuff).
+        // Note: previously coded as remaining:3 — gamedata-correct is 2.
+        target: 'team',
         buff: {
           id: 'RuanMei.ultField',
-          remaining: 3,            // HSR ult text: field lasts 3 turns
+          remaining: 2,
           mode: 'turnsOnSource',
+          conditionalKey: 'ultFieldActive',
+        },
+      },
+      {
+        // Past Self in the Mirror (Ruan Mei's LC) — team DMG buff on wearer's ult, riding
+        // the Zone window (effective uptime ≈ Zone). LC conditional `postUltDmgBuff`. Modeled
+        // as a field on the source so the flag reaches every ally.
+        target: 'team',
+        buff: {
+          id: 'RuanMei.pastSelfInTheMirror',
+          remaining: 2,
+          mode: 'turnsOnSource',
+          conditionalKey: 'postUltDmgBuff',
+          conditionalKind: 'lc',
         },
       },
     ],

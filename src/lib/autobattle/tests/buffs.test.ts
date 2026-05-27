@@ -46,6 +46,36 @@ describe('addBuff', () => {
     addBuff(state, makeBuff({ sourceSlot: 1 }))
     expect(state.activeBuffs).toHaveLength(2)
   })
+
+  test('different target slot does NOT collapse (eachAlly fan-out)', () => {
+    const state = emptyState()
+    addBuff(state, makeBuff({ target: { kind: 'slot', slot: 0 } }))
+    addBuff(state, makeBuff({ target: { kind: 'slot', slot: 1 } }))
+    addBuff(state, makeBuff({ target: { kind: 'slot', slot: 2 } }))
+    expect(state.activeBuffs).toHaveLength(3)
+  })
+
+  test('same target slot DOES collapse (refresh)', () => {
+    const state = emptyState()
+    addBuff(state, makeBuff({ target: { kind: 'slot', slot: 0 }, remaining: 50 }))
+    addBuff(state, makeBuff({ target: { kind: 'slot', slot: 0 }, remaining: 200 }))
+    expect(state.activeBuffs).toHaveLength(1)
+    expect(state.activeBuffs[0].remaining).toBe(200)
+  })
+})
+
+describe('sticky mode', () => {
+  test('sticky-mode buffs never tick', () => {
+    const state = emptyState([
+      makeBuff({ id: 'topaz', mode: 'sticky', target: { kind: 'enemy' }, remaining: 1 }),
+    ])
+    tickAvBuffs(state, 1000)
+    tickTurnsOnSource(state, 0)
+    tickTurnsOnTarget(state, 0)
+    tickTurnsOnEnemy(state)
+    expect(state.activeBuffs).toHaveLength(1)
+    expect(state.activeBuffs[0].remaining).toBe(1)
+  })
 })
 
 describe('tickAvBuffs', () => {
@@ -69,7 +99,11 @@ describe('tickAvBuffs', () => {
 })
 
 describe('tickTurnsOnTarget', () => {
-  test('decrements only buffs whose target is the acting slot (or team)', () => {
+  test('decrements only slot-bound buffs whose target.slot matches the actor', () => {
+    // turnsOnTarget is HSR's per-ally tick basis for buff-style team effects (Sparkle Cipher,
+    // Aventurine Fortified Wager). The buff is fanned out per-ally (target: 'eachAlly') so
+    // each entry is kind:'slot' bound to its ally; team-kind or enemy-kind targets never
+    // tick here because fields/enemy debuffs use turnsOnSource/turnsOnEnemy instead.
     const state = emptyState([
       makeBuff({ id: 'team', mode: 'turnsOnTarget', target: { kind: 'team' }, remaining: 2 }),
       makeBuff({ id: 'slot0', mode: 'turnsOnTarget', target: { kind: 'slot', slot: 0 }, remaining: 1 }),
@@ -78,8 +112,9 @@ describe('tickTurnsOnTarget', () => {
     ])
     tickTurnsOnTarget(state, 0)
     const ids = state.activeBuffs.map((b) => b.id).sort()
+    // slot0 expired (kind:slot, matches actor). team/slot1/enemy untouched.
     expect(ids).toEqual(['enemy', 'slot1', 'team'])
-    expect(state.activeBuffs.find((b) => b.id === 'team')?.remaining).toBe(1)
+    expect(state.activeBuffs.find((b) => b.id === 'team')?.remaining).toBe(2)
   })
 })
 

@@ -1,16 +1,24 @@
 import type { ActiveBuff, BattleState, SlotIndex } from 'lib/autobattle/types'
 
 export function addBuff(state: BattleState, buff: ActiveBuff): void {
-  // If a buff with the same id already exists from the same source, refresh duration instead
-  // of stacking. This matches HSR's "refresh on reapply" behavior for most named buffs.
+  // Refresh-on-reapply matches HSR's named-buff semantics. Dedup key includes target so the
+  // per-slot fan-out used for buff-style team effects ('eachAlly' grant) doesn't collide:
+  // N ActiveBuffs with the same id+sourceSlot but distinct target slots remain N entries,
+  // each ticking on its own ally's turn via 'turnsOnTarget'.
   const existing = state.activeBuffs.findIndex(
-    (b) => b.id === buff.id && b.sourceSlot === buff.sourceSlot,
+    (b) => b.id === buff.id && b.sourceSlot === buff.sourceSlot && sameTarget(b.target, buff.target),
   )
   if (existing >= 0) {
     state.activeBuffs[existing] = buff
   } else {
     state.activeBuffs.push(buff)
   }
+}
+
+function sameTarget(a: ActiveBuff['target'], b: ActiveBuff['target']): boolean {
+  if (a.kind !== b.kind) return false
+  if (a.kind === 'slot' && b.kind === 'slot') return a.slot === b.slot
+  return true
 }
 
 export function tickAvBuffs(state: BattleState, dt: number): void {
@@ -25,8 +33,10 @@ export function tickAvBuffs(state: BattleState, dt: number): void {
 export function tickTurnsOnTarget(state: BattleState, actorSlot: SlotIndex): void {
   expireWhere(state, (b) => {
     if (b.mode !== 'turnsOnTarget') return false
-    if (b.target.kind === 'slot' && b.target.slot !== actorSlot) return false
-    if (b.target.kind === 'enemy') return false
+    // turnsOnTarget is only meaningful for slot-bound buffs (per-ally fan-out from
+    // `target: 'eachAlly'`). Team-kind or enemy-kind targets never tick here.
+    if (b.target.kind !== 'slot') return false
+    if (b.target.slot !== actorSlot) return false
     b.remaining -= 1
     return b.remaining <= 0
   })

@@ -1,7 +1,7 @@
 import type { ActorId, BattleState, SlotIndex } from 'lib/autobattle/types'
 import { serializeActorId } from 'lib/autobattle/types'
 import type { ElementName } from 'lib/constants/constants'
-import { applyTeamBuffsForActor } from 'lib/autobattle/damage/teamBuffApplier'
+import { buildLiveConditionalOverrides } from 'lib/autobattle/damage/teamBuffApplier'
 import type { SlotResolverState } from 'lib/autobattle/damage/contextBuilder'
 import { calculateBaseMultis } from 'lib/optimization/calculateDamage'
 import {
@@ -12,6 +12,7 @@ import { resetConditionalState } from 'lib/optimization/conditionalStateUtils'
 import { StatKey } from 'lib/optimization/engine/config/keys'
 import { OutputTag } from 'lib/optimization/engine/config/tag'
 import { getDamageFunction } from 'lib/optimization/engine/damage/damageCalculator'
+import { rebuildPrecomputedStats } from 'lib/optimization/rotation/comboStateTransform'
 import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 import type { Hit } from 'types/hitConditionalTypes'
 import type { OptimizerAction } from 'types/optimizer'
@@ -190,7 +191,13 @@ function runActionPipeline(
   action: OptimizerAction,
   slotState: SlotResolverState,
 ): void {
-  applyTeamBuffsForActor(state, actor, action, slotState.teammateSlotByBattleSlot)
+  // Per-resolve precompute rebuild against live conditional state derived from activeBuffs.
+  // Replaces the old "team buffs always-on at defaults" baseline. The comboState was retained
+  // on the context by transformComboState so we can re-run precompute hooks here.
+  const overrides = buildLiveConditionalOverrides(state, actor, slotState.teammateSlotByBattleSlot)
+  if (slotState.context.comboState) {
+    rebuildPrecomputedStats(action, slotState.context.comboState, slotState.context, overrides)
+  }
   resetConditionalState(action)
 
   const { context, x } = slotState

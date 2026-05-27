@@ -38,26 +38,48 @@ export const RobinData: CharacterData = {
   grantsBuffsOnAction: {
     [AbilityKind.SKILL]: [
       {
-        // Pinion's Aria: team ATK+DMG buff that lasts 3 of Robin's turns. The buff is
-        // tracked purely as a tendency signal — the stat values themselves flow through
-        // optimizer conditionals at context build, so we don't need a statOverride. The
-        // tick-on-application off-by-one (turnsOnSource ticks at the end of the turn it
-        // was applied on) means remaining=3 covers turns 1-3 inclusive of the cast turn.
-        target: 'self',
+        // Pinion's Aria — FIELD per gamedata SkillID 130902 ("This duration decreases by 1
+        // at the start of Robin's every turn"). 3 turns at lv1 (ParamList[1]). Drives Robin's
+        // `skillDmgBuff` teammate conditional. target:'team' so the conditional propagates
+        // to every resolver via buffAppliesToActor(kind:'team' → true).
+        target: 'team',
         buff: {
           id: 'Robin.pinionsAria',
           remaining: 3,
           mode: 'turnsOnSource',
+          conditionalKey: 'skillDmgBuff',
         },
       },
     ],
     [AbilityKind.ULT]: [
       {
-        target: 'self',
+        // Concerto — AV-mode countdown at fixed SPD 90 (10000/90 AV) per gamedata SkillID
+        // 130903. Field semantics (single buff propagating to whole team). Drives Robin's
+        // `concertoActive` teammate conditional which gates her E1 RES PEN, talent CD, and
+        // trace FUA CD via `&& concertoActive` in the precompute hooks.
+        target: 'team',
         buff: {
           id: 'Robin.concerto',
           remaining: CONCERTO_DURATION_AV,
           mode: 'av',
+          conditionalKey: 'concertoActive',
+        },
+      },
+      {
+        // Robin's LC Flowing Nightglow: "When the wearer's Ultimate is used, all allies'
+        // ATK increases by 60% [...] and DMG by 24% [...] lasting 1 turn(s)" — modeled as
+        // riding the Concerto AV window since the LC effect persists alongside Concerto.
+        // Conditional sits on Robin's LC conditionals as `cadenzaActive`, so
+        // conditionalKind='lc'. Approximation: the actual LC text is "1 turn on each ally"
+        // (per-ally turnsOnTarget) but the AV-window approximation aligns the LC's effective
+        // uptime with Concerto's.
+        target: 'team',
+        buff: {
+          id: 'Robin.flowingNightglowCadenza',
+          remaining: CONCERTO_DURATION_AV,
+          mode: 'av',
+          conditionalKey: 'cadenzaActive',
+          conditionalKind: 'lc',
         },
       },
     ],

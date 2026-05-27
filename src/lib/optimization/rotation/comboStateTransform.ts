@@ -48,6 +48,8 @@ export function transformComboState(request: Form, context: OptimizerContext) {
 
   const comboState = initializeComboState(request, merge)
   newTransformStateActions(comboState, request, context)
+  // Retain for autobattle's per-resolve precompute rebuild. Optimizer path ignores it.
+  context.comboState = comboState
 }
 
 export function defineAction(
@@ -224,6 +226,116 @@ function precomputeTeammates(action: OptimizerAction, comboState: ComboState, co
   }
 
   action.config.teammateSetEffects = teammateSetEffects
+}
+
+// Per-resolve override map applied on top of comboState.comboTeammate{0,1,2} conditionals.
+// Keyed by 0/1/2 to match the teammate slot in comboState.
+export interface TeammateConditionalOverride {
+  teammateIndex: 0 | 1 | 2
+  characterConditionals?: Record<string, boolean | number>
+  lightConeConditionals?: Record<string, boolean | number>
+}
+
+// Zero precomputedStats and re-run precomputeConditionals against comboState with optional
+// per-teammate conditional overrides. Used by autobattle to rebuild stats per resolution
+// when activeBuffs state changes (i.e. teammate buffs entering/leaving).
+//
+// The overrides are applied after transformConditionals (which folds the action's
+// conditionalIndex into the comboState's per-action activations), so the override map is
+// a flat `{ key: boolean | number }` not a ComboConditional structure.
+//
+// Note: this does NOT re-run set effects (they're snapshotted at first build via
+// action.config.teammateSetEffects) and does NOT re-run precomputeExtraCombatBuffs.
+// Set effects are treated as passive in v1 — same simplification as the all-on baseline.
+export function rebuildPrecomputedStats(
+  action: OptimizerAction,
+  comboState: ComboState,
+  context: OptimizerContext,
+  overrides?: TeammateConditionalOverride[],
+): void {
+  // Zero the precomputed array. precomputeConditionals writes via container.buff() which
+  // adds, so we must start from a clean slate every rebuild.
+  action.precomputedStats.a.fill(0)
+
+  precomputeConditionalsWithOverrides(action, comboState, context, overrides)
+}
+
+function precomputeConditionalsWithOverrides(
+  action: OptimizerAction,
+  comboState: ComboState,
+  context: OptimizerContext,
+  overrides?: TeammateConditionalOverride[],
+) {
+  const characterConditionals: CharacterConditionalsController = CharacterConditionalsResolver.get(comboState.comboCharacter.metadata)
+  const lightConeConditionals: LightConeConditionalsController = LightConeConditionalsResolver.get(comboState.comboCharacter.metadata)
+
+  const container = action.precomputedStats
+
+  lightConeConditionals.initializeConfigurationsContainer?.(container, action, context)
+  characterConditionals.initializeConfigurationsContainer?.(container, action, context)
+
+  const teammates = [comboState.comboTeammate0, comboState.comboTeammate1, comboState.comboTeammate2]
+
+  // initialize teammate configuration containers (matches precomputeConditionals)
+  for (let i = 0; i < teammates.length; i++) {
+    const teammate = teammates[i]
+    if (!teammate?.metadata?.characterId) continue
+
+    const teammateAction = buildTeammateAction(action, teammate, overrides, i as 0 | 1 | 2)
+    const teammateCharacterConditionals = CharacterConditionalsResolver.get(teammate.metadata)
+    const teammateLightConeConditionals = LightConeConditionalsResolver.get(teammate.metadata)
+
+    teammateCharacterConditionals.initializeTeammateConfigurationsContainer?.(container, teammateAction, context)
+    teammateLightConeConditionals.initializeTeammateConfigurationsContainer?.(container, teammateAction, context)
+  }
+
+  // Self precompute effects (these use action's own conditionals; we don't override self
+  // — only teammates have buff-driven uptime in v1).
+  lightConeConditionals.precomputeEffectsContainer?.(container, action, context)
+  characterConditionals.precomputeEffectsContainer?.(container, action, context)
+
+  lightConeConditionals.precomputeMutualEffectsContainer?.(container, action, context, action)
+  characterConditionals.precomputeMutualEffectsContainer?.(container, action, context, action)
+
+  // Teammates' contribution to self with overrides applied
+  for (let i = 0; i < teammates.length; i++) {
+    const teammate = teammates[i]
+    if (!teammate?.metadata?.characterId) continue
+
+    const teammateAction = buildTeammateAction(action, teammate, overrides, i as 0 | 1 | 2)
+    const teammateCharacterConditionals = CharacterConditionalsResolver.get(teammate.metadata)
+    const teammateLightConeConditionals = LightConeConditionalsResolver.get(teammate.metadata)
+
+    teammateCharacterConditionals.precomputeMutualEffectsContainer?.(container, teammateAction, context, action)
+    teammateCharacterConditionals.precomputeTeammateEffectsContainer?.(container, teammateAction, context, action)
+
+    teammateLightConeConditionals.precomputeMutualEffectsContainer?.(container, teammateAction, context)
+    teammateLightConeConditionals.precomputeTeammateEffectsContainer?.(container, teammateAction, context)
+  }
+}
+
+function buildTeammateAction(
+  action: OptimizerAction,
+  teammate: NonNullable<ComboState['comboTeammate0']>,
+  overrides: TeammateConditionalOverride[] | undefined,
+  teammateIndex: 0 | 1 | 2,
+): OptimizerAction {
+  const baseCharCond = transformConditionals(action.conditionalIndex, teammate.characterConditionals)
+  const baseLcCond = transformConditionals(action.conditionalIndex, teammate.lightConeConditionals)
+
+  const override = overrides?.find((o) => o.teammateIndex === teammateIndex)
+  if (override) {
+    if (override.characterConditionals) Object.assign(baseCharCond, override.characterConditionals)
+    if (override.lightConeConditionals) Object.assign(baseLcCond, override.lightConeConditionals)
+  }
+
+  return {
+    actorId: teammate.metadata.characterId,
+    actorEidolon: teammate.metadata.characterEidolon,
+    characterConditionals: baseCharCond,
+    lightConeConditionals: baseLcCond,
+    config: action.config,
+  } as OptimizerAction
 }
 
 export function transformConditionals(actionIndex: number, conditionals: ComboConditionals) {

@@ -59,15 +59,19 @@ describe('characterData registry', () => {
     expect(data.grantsEnergyOnAction?.[AbilityKind.ULT]).toBeUndefined()
   })
 
-  test('Robin: ult applies Concerto self-marker buff (av-mode, 10000/90 AV)', () => {
+  test('Robin: ult applies Concerto field buff (av-mode, 10000/90 AV, team target)', () => {
     const data = resolveCharacterData('1309' as CharacterId)
     const buffGrants = data.grantsBuffsOnAction?.[AbilityKind.ULT]
-    expect(buffGrants?.length).toBe(1)
-    expect(buffGrants?.[0].target).toBe('self')
-    expect(buffGrants?.[0].buff.id).toBe('Robin.concerto')
-    expect(buffGrants?.[0].buff.mode).toBe('av')
+    // Two grants on ULT: Concerto (own kit) and Flowing Nightglow LC cadenza.
+    expect(buffGrants?.length).toBe(2)
+    const concerto = buffGrants?.find((g) => g.buff.id === 'Robin.concerto')
+    // target:'team' so the conditional flag propagates to every resolving actor — see
+    // .tmp/discrepancies/2026-05-26-buff-vs-field-classification.md for the rationale.
+    expect(concerto?.target).toBe('team')
+    expect(concerto?.buff.mode).toBe('av')
+    expect(concerto?.buff.conditionalKey).toBe('concertoActive')
     // Concerto countdown is a fixed-SPD 90 entity per the Ultimate description.
-    expect(buffGrants?.[0].buff.remaining).toBeCloseTo(10000 / 90, 5)
+    expect(concerto?.buff.remaining).toBeCloseTo(10000 / 90, 5)
   })
 
   test('Robin: Concerto buff pauses her primary clock with actOnResume', () => {

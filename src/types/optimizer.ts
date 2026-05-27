@@ -159,4 +159,10 @@ export type OptimizerContext = CharacterMetadata & {
   enemyWeaknessBroken: boolean,
 
   lightConeController: LightConeConditionalsController,
+
+  // The ComboState that built this context's actions. Retained so callers (currently
+  // autobattle's per-resolve precompute rebuild) can re-run precomputeConditionals
+  // against the same teammate conditional source with live overrides. Untouched by
+  // the optimizer's grid-search path.
+  comboState?: import('lib/optimization/combo/comboTypes').ComboState,
 }

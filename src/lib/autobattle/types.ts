@@ -132,7 +132,7 @@ export interface ActiveDot {
   element?: ElementName
 }
 
-export type BuffTickMode = 'av' | 'turnsOnTarget' | 'turnsOnSource' | 'turnsOnEnemy'
+export type BuffTickMode = 'av' | 'turnsOnTarget' | 'turnsOnSource' | 'turnsOnEnemy' | 'sticky'
 
 export type BuffTarget =
   | { kind: 'team' }
@@ -143,10 +143,14 @@ export interface ActiveBuff {
   id: string                // unique per (source, effect), e.g. 'Robin.concerto', 'Bronya.ultBuff'
   sourceSlot: SlotIndex
   target: BuffTarget
-  // The buff flips a conditional flag on the affected character's OptimizerAction
-  // teammateN.characterConditionals, so existing precomputeMutualEffectsContainer
-  // hooks fire naturally. Fallback statOverride applies directly via x.buff().
+  // The buff flips a conditional flag on the buff source's OptimizerAction conditionals
+  // when the damage runner rebuilds precomputedStats for any team member targeted by the
+  // buff. Choose `conditionalKind` based on whether the flag lives on the character's own
+  // characterConditionals (default, omit to use 'character') or on the wielder's
+  // lightConeConditionals ('lc' — for LC-driven buffs like FlowingNightglow.cadenzaActive
+  // that fire alongside the wielder's ability).
   conditionalKey?: string
+  conditionalKind?: 'character' | 'lc'
   statOverride?: { statKey: StatKeyValue; value: number }
   remaining: number
   mode: BuffTickMode
@@ -270,9 +274,12 @@ export interface AutobattleResult {
 // =============================================================================
 
 export type GrantTarget =
-  | 'allAllies'        // every slot except self
+  | 'allAllies'        // every slot except self (energy/advance: per-ally; buff: one per ally excluding self)
   | 'singleAlly'       // resolves to mainDpsSlot (excluded: self)
   | 'self'             // the actor itself
+  | 'team'             // buff grants only: emits a single kind:'team' ActiveBuff that applies to every actor (incl. source). Use for fields (turnsOnSource), where the conditional flag should be visible in every resolver's view of the source.
+  | 'eachAlly'         // buff grants only: fan-out to one ActiveBuff per ally INCLUDING source. Use for buffs (turnsOnTarget) where each ally tracks duration independently.
+  | 'enemy'            // primary enemy; for buff grants only (debuff-as-team-DMG-buff)
   | { slot: SlotIndex } // explicit
 
 export interface GrantSpec {

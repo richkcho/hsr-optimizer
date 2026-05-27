@@ -129,23 +129,24 @@ function makeInput(): AutobattleInput {
   }
 }
 
-// Golden refrozen on 2026-05-25 after #8 added break-effect DoTs (Burn/Shock/etc.) that
-// credit the breaker for 2 ticks of generic 0.5× break damage after each break. Each slot
-// now carries a non-trivial DOT bucket roughly proportional to its BREAK contributions;
-// grandTotal shifts +0.5% from the new DoT damage.
+// Golden refrozen on 2026-05-26 after the full buff-vs-field classification sweep (see
+// `.tmp/discrepancies/2026-05-26-buff-vs-field-classification.md`). All 14 chars now
+// follow the field/buff/debuff modeling: fields use target:'team' + turnsOnSource,
+// buffs use target:'eachAlly' or 'singleAlly' + turnsOnTarget, and enemy debuffs use
+// target:'enemy' + turnsOnEnemy (or 'sticky' for Topaz's Proof of Debt).
 // To regenerate after pipeline changes: flip the `regen` test below to non-skip and copy
 // its console output back into this block.
 const GOLDEN = {
-  grandTotal: 28111919,
-  feixiaoTotal: 22199474,
-  feixiaoFua: 5519999,
-  feixiaoUlt: 11258877,
-  feixiaoBreak: 126263,
-  feixiaoDot: 103604,
-  robinTotal: 2201585,
-  robinUnique: 1823960,
-  sparkleTotal: 297291,
-  aventurineTotal: 3413570,
+  grandTotal: 17621377,
+  feixiaoTotal: 13329932,
+  feixiaoFua: 3201480,
+  feixiaoUlt: 6714349,
+  feixiaoBreak: 113830,
+  feixiaoDot: 84955,
+  robinTotal: 1895268,
+  robinUnique: 1579844,
+  sparkleTotal: 231677,
+  aventurineTotal: 2164500,
 }
 
 function approxEq(actual: number, expected: number, tolerance = 0.001): void {

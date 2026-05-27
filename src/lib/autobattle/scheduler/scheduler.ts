@@ -651,6 +651,46 @@ function applyCharacterDataGrants(state: BattleState, member: TeamMember, kind: 
     advancePercent(state, target.slot, target.baseSpd, avPercent)
   }
   for (const grant of data.grantsBuffsOnAction?.[kind] ?? []) {
+    if (grant.target === 'enemy') {
+      // Enemy-targeted buff: applied once with target.kind='enemy'. Team-wide damage buffs
+      // (vulnerability, RES PEN aura) read this and treat the debuff-on-enemy as a team buff
+      // multiplier for any ally hitting the affected enemy.
+      const buff: ActiveBuff = {
+        ...grant.buff,
+        sourceSlot: member.slot,
+        target: { kind: 'enemy' },
+      }
+      addBuff(state, buff)
+      continue
+    }
+    if (grant.target === 'team') {
+      // Field-style team-wide effect: single kind:'team' buff that propagates the source's
+      // conditional flag to every resolver via buffAppliesToActor. Tick basis is usually
+      // 'turnsOnSource' (decrements on caster's turn) per HSR field semantics.
+      const buff: ActiveBuff = {
+        ...grant.buff,
+        sourceSlot: member.slot,
+        target: { kind: 'team' },
+      }
+      addBuff(state, buff)
+      continue
+    }
+    if (grant.target === 'eachAlly') {
+      // Buff-style fan-out: one ActiveBuff per ally INCLUDING source. Each entry's
+      // remaining/mode are independent so 'turnsOnTarget' decrements per-ally. addBuff
+      // dedup keys on (id, sourceSlot, target.slot) so the N entries don't collapse.
+      for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
+        const m = state.members[slot]
+        if (!m) continue
+        const buff: ActiveBuff = {
+          ...grant.buff,
+          sourceSlot: member.slot,
+          target: { kind: 'slot', slot: m.slot },
+        }
+        addBuff(state, buff)
+      }
+      continue
+    }
     for (const target of resolveTargets(state, member, grant.target)) {
       const buff: ActiveBuff = {
         ...grant.buff,

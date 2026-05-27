@@ -22,4 +22,41 @@ export const TopazData: CharacterData = {
       conditionMark: 'numbyMark',
     },
   },
+  // Proof of Debt is sticky per gamedata SkillID 111202: "Proof of Debt only takes effect
+  // on the most recent target it is applied to. If there are no enemies inflicted with
+  // Proof of Debt on the field when an ally's turn starts or when an ally takes action,
+  // Topaz will inflict a random enemy with Proof of Debt." No explicit duration — the
+  // debuff persists indefinitely once applied, transferring to a random enemy if the
+  // marked one dies. mode:'sticky' models this by skipping all tick functions.
+  //
+  // While active, FUAs against the marked enemy gain +50% Vulnerability (Topaz.ts:237-241
+  // in conditionals). Modeled as a team-wide buff via target:'enemy' so any teammate's
+  // FUA picks up the multiplier through her `enemyProofOfDebtDebuff` teammate conditional.
+  grantsBuffsOnAction: {
+    [AbilityKind.SKILL]: [
+      {
+        target: 'enemy',
+        buff: {
+          id: 'Topaz.proofOfDebt',
+          remaining: 1,
+          mode: 'sticky',
+          conditionalKey: 'enemyProofOfDebtDebuff',
+        },
+      },
+    ],
+    [AbilityKind.ULT]: [
+      {
+        // Ult re-applies on the primary target ("Proof of Debt re-applied" per the kit
+        // text). Re-application is a no-op for the sticky buff but kept as a hook for
+        // tendency signaling.
+        target: 'enemy',
+        buff: {
+          id: 'Topaz.proofOfDebt',
+          remaining: 1,
+          mode: 'sticky',
+          conditionalKey: 'enemyProofOfDebtDebuff',
+        },
+      },
+    ],
+  },
 }
