@@ -278,7 +278,7 @@ export type GrantTarget =
   | 'singleAlly'       // resolves to mainDpsSlot (excluded: self)
   | 'self'             // the actor itself
   | 'team'             // buff grants only: emits a single kind:'team' ActiveBuff that applies to every actor (incl. source). Use for fields (turnsOnSource), where the conditional flag should be visible in every resolver's view of the source.
-  | 'eachAlly'         // buff grants only: fan-out to one ActiveBuff per ally INCLUDING source. Use for buffs (turnsOnTarget) where each ally tracks duration independently.
+  | 'eachAlly'         // every slot INCLUDING source. For buffs: fan-out to one ActiveBuff per ally (turnsOnTarget tracks duration independently). For energy/advance: per-ally grant including source (e.g. wave-start Overture +5 to all four).
   | 'enemy'            // primary enemy; for buff grants only (debuff-as-team-DMG-buff)
   | { slot: SlotIndex } // explicit
 
@@ -453,9 +453,29 @@ export interface CharacterData {
   battleStartAvAdvance?: number
 
   // Bonus raw energy applied once at sim-init, after the default starting-energy roll, subject
-  // to standard ERR scaling via changeEnergy. Models technique-style WaveStart energy grants
-  // (e.g. Robin's "Overture of Inebriation" technique: +5 energy on wave start).
+  // to standard ERR scaling via changeEnergy. Self-only legacy field; for team-wide / per-ally
+  // wave-start energy use grantsEnergyOnBattleStart with target: 'eachAlly' instead.
   battleStartBonusEnergy?: number
+
+  // Wave-start grants — analog of grantsXxxOnAction for the one-shot fire that happens at
+  // sim-init. Applied once after the team is initialized and resources/buffs are set up. Use
+  // these for technique-style effects (Robin's Overture +5 to allies, Topaz's Proof of Debt
+  // pre-applied to enemy, Aventurine's wave-start DEF buff). Energy uses changeEnergy so ERR
+  // scaling matches in-combat; advance uses advancePercent against the target's baseSpd; buffs
+  // route through the shared grant-dispatch helper (same enemy/team/eachAlly fan-out as the
+  // in-battle path).
+  grantsEnergyOnBattleStart?: EnergyGrant
+  grantsAdvanceOnBattleStart?: AdvanceGrant
+  grantsBuffsOnBattleStart?: BuffGrant[]
+
+  // Auto-fire one ability at wave start with no SP cost (technique-style invoke). Dispatched
+  // via the normal executeAbility path after init + resolver creation but before the main
+  // scheduler loop, so all knock-on effects (damage, energy gain, grants, traces, buff
+  // application) flow through the same code paths as an in-battle cast. Models Ruan Mei's
+  // Silken Serenade: on battle start her Skill (130302) fires once, applying her Overtone
+  // field to the team. The dispatched ability picks its target via abilityTargetHint[kind]
+  // or defaultTargetForKind, matching how the scheduler resolves in-battle casts.
+  autoFireOnBattleStart?: AbilityKind
 
   // Fires when an enemy recovers from weakness break (transitions broken → unbroken on its
   // own turn). v1 hardcodes the firedAs case to BREAK damage credited to the listener,

@@ -4,8 +4,9 @@ import {
   buildSlotResolvers,
   type SlotResolverState,
 } from 'lib/autobattle/damage/contextBuilder'
-import { avFromSpd, createClock } from 'lib/autobattle/scheduler/avQueue'
+import { advancePercent, avFromSpd, createClock } from 'lib/autobattle/scheduler/avQueue'
 import { createEnemyState } from 'lib/autobattle/state/enemy'
+import { applyBuffGrant, resolveTargets } from 'lib/autobattle/state/grants'
 import { createLedger } from 'lib/autobattle/state/ledger'
 import { changeEnergy, createResourceState } from 'lib/autobattle/state/resources'
 import { resolveTendency } from 'lib/autobattle/tendencies/tendencyRegistry'
@@ -124,12 +125,36 @@ export function createInitialBattleState(
   }
 
   // Battle-start bonus energy (technique-style grants). Applied via changeEnergy so ERR
-  // scaling matches in-combat gains.
+  // scaling matches in-combat gains. Legacy self-only field — for team-wide / per-ally
+  // wave-start energy see grantsEnergyOnBattleStart below.
   for (const slot of (Object.keys(members) as unknown as SlotIndex[])) {
     const member = members[slot]
     if (!member) continue
     const bonus = member.characterData.battleStartBonusEnergy
     if (bonus) changeEnergy(state.resources, member, bonus)
+  }
+
+  // Wave-start grants — analog of grantsXxxOnAction for the one-shot fire at sim-init.
+  // Apply order: advance first (so subsequent buff queries see updated clocks), then energy,
+  // then buffs. Stacks additively on top of the legacy battleStartAvAdvance trace above.
+  for (const slot of (Object.keys(members) as unknown as SlotIndex[])) {
+    const member = members[slot]
+    if (!member) continue
+    const advanceGrant = member.characterData.grantsAdvanceOnBattleStart
+    if (advanceGrant) {
+      for (const target of resolveTargets(state, member, advanceGrant.target)) {
+        advancePercent(state, target.slot, target.baseSpd, advanceGrant.avPercent)
+      }
+    }
+    const energyGrant = member.characterData.grantsEnergyOnBattleStart
+    if (energyGrant) {
+      for (const target of resolveTargets(state, member, energyGrant.target)) {
+        changeEnergy(state.resources, target, energyGrant.amount)
+      }
+    }
+    for (const buffGrant of member.characterData.grantsBuffsOnBattleStart ?? []) {
+      applyBuffGrant(state, member, buffGrant)
+    }
   }
 
   return { state, slotResolvers }

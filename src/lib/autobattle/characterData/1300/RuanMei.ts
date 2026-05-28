@@ -23,6 +23,11 @@ export const RuanMeiData: CharacterData = {
     [AbilityKind.SKILL]: 'self',       // Overtone — self-buff that propagates team-wide
     [AbilityKind.ULT]: 'allEnemies',   // AoE damage + field on all enemies
   },
+  // Silken Serenade — pre-battle technique automatically triggers her Skill (gamedata SkillID
+  // 130302) once at wave start with no SP cost. Dispatched via executeAbility so the auto-Skill
+  // applies RuanMei.overtone, gains its normal Skill energy, and benefits from any post-Skill
+  // traces — matching the reference's "Ruan Mei acts at AV 0.0" first-action timing.
+  autoFireOnBattleStart: AbilityKind.SKILL,
   grantsBuffsOnAction: {
     [AbilityKind.SKILL]: [
       {

@@ -18,6 +18,7 @@ import {
   tickTurnsOnTarget,
 } from 'lib/autobattle/state/buffs'
 import { addOrRefreshDot, breakActionDelayAv, onEnemyTurn } from 'lib/autobattle/state/enemy'
+import { applyBuffGrant, resolveTargets } from 'lib/autobattle/state/grants'
 import { addDamage } from 'lib/autobattle/state/ledger'
 import {
   changeEnergy,
@@ -30,7 +31,6 @@ import {
 } from 'lib/autobattle/state/resources'
 import {
   type AbilityTarget,
-  type ActiveBuff,
   type ActorId,
   type AutobattleInput,
   type AutobattleResult,
@@ -38,7 +38,6 @@ import {
   type ChosenAbility,
   type EnemyState,
   type FuaStackPool,
-  type GrantTarget,
   serializeActorId,
   type SlotIndex,
   type TeamMember,
@@ -60,6 +59,25 @@ export function runAutobattle(input: AutobattleInput, options: RunOptions = {}):
   const buildResolvers = options.buildResolvers ?? !options.resolver
   const { state, slotResolvers } = createInitialBattleState(input, { buildResolvers })
   const resolver = options.resolver ?? createRealDamageResolver({ slotStates: slotResolvers })
+
+  // Auto-fire wave-start abilities (technique-style invokes). Dispatched via executeAbility
+  // so all knock-on effects (damage, energy gain, grants, traces, buff application) flow
+  // through the same paths as an in-battle cast. SP cost is skipped per technique semantics.
+  // Runs before the main scheduler loop so any field buffs the auto-fired ability applies
+  // are live for the first scheduled turn.
+  for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
+    const m = state.members[slot]
+    if (!m?.characterData.autoFireOnBattleStart) continue
+    const kind = m.characterData.autoFireOnBattleStart
+    executeAbility(
+      state,
+      { slot: m.slot, kind: 'primary' },
+      { kind, reason: 'autoFireOnBattleStart' },
+      resolver,
+      0,
+      { skipSpCost: true },
+    )
+  }
 
   // Safety guard against infinite loops: cap total iterations at a generous multiple of the
   // worst-case turn count. (10000 AV / 1 AV per turn × 4 actors × 50 = 2,000,000 — far above
@@ -361,12 +379,16 @@ function executeAbility(
   chosen: ChosenAbility,
   resolver: DamageResolver,
   deltaAv: number,
+  options?: { skipSpCost?: boolean },
 ): void {
   const member = state.members[actorId.slot]!
   const spBefore = state.resources.skillPoints
 
-  // SP economy
-  payAbilitySp(state, member, chosen.kind)
+  // SP economy — skipped for technique-style invokes (autoFireOnBattleStart) since the
+  // pre-battle ability is free per HSR's technique semantics.
+  if (!options?.skipSpCost) {
+    payAbilitySp(state, member, chosen.kind)
+  }
 
   // Resolve target up-front so the broken-state lookup (used by both the enemyWeaknessBroken
   // flip below and the post-resolve break-detection block) shares one computation.
@@ -651,80 +673,8 @@ function applyCharacterDataGrants(state: BattleState, member: TeamMember, kind: 
     advancePercent(state, target.slot, target.baseSpd, avPercent)
   }
   for (const grant of data.grantsBuffsOnAction?.[kind] ?? []) {
-    if (grant.target === 'enemy') {
-      // Enemy-targeted buff: applied once with target.kind='enemy'. Team-wide damage buffs
-      // (vulnerability, RES PEN aura) read this and treat the debuff-on-enemy as a team buff
-      // multiplier for any ally hitting the affected enemy.
-      const buff: ActiveBuff = {
-        ...grant.buff,
-        sourceSlot: member.slot,
-        target: { kind: 'enemy' },
-      }
-      addBuff(state, buff)
-      continue
-    }
-    if (grant.target === 'team') {
-      // Field-style team-wide effect: single kind:'team' buff that propagates the source's
-      // conditional flag to every resolver via buffAppliesToActor. Tick basis is usually
-      // 'turnsOnSource' (decrements on caster's turn) per HSR field semantics.
-      const buff: ActiveBuff = {
-        ...grant.buff,
-        sourceSlot: member.slot,
-        target: { kind: 'team' },
-      }
-      addBuff(state, buff)
-      continue
-    }
-    if (grant.target === 'eachAlly') {
-      // Buff-style fan-out: one ActiveBuff per ally INCLUDING source. Each entry's
-      // remaining/mode are independent so 'turnsOnTarget' decrements per-ally. addBuff
-      // dedup keys on (id, sourceSlot, target.slot) so the N entries don't collapse.
-      for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
-        const m = state.members[slot]
-        if (!m) continue
-        const buff: ActiveBuff = {
-          ...grant.buff,
-          sourceSlot: member.slot,
-          target: { kind: 'slot', slot: m.slot },
-        }
-        addBuff(state, buff)
-      }
-      continue
-    }
-    for (const target of resolveTargets(state, member, grant.target)) {
-      const buff: ActiveBuff = {
-        ...grant.buff,
-        sourceSlot: member.slot,
-        target: { kind: 'slot', slot: target.slot },
-      }
-      addBuff(state, buff)
-    }
+    applyBuffGrant(state, member, grant)
   }
-}
-
-function resolveTargets(state: BattleState, self: TeamMember, target: GrantTarget | undefined): TeamMember[] {
-  if (!target) return []
-  if (target === 'self') return [self]
-  if (target === 'singleAlly') {
-    const main = state.members[state.mainDpsSlot]
-    if (main && main.slot !== self.slot) return [main]
-    // If the main DPS is self, fall through to any other slot — pick lowest slot index.
-    for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
-      const m = state.members[slot]
-      if (m && m.slot !== self.slot) return [m]
-    }
-    return []
-  }
-  if (target === 'allAllies') {
-    const out: TeamMember[] = []
-    for (const slot of (Object.keys(state.members) as unknown as SlotIndex[])) {
-      const m = state.members[slot]
-      if (m && m.slot !== self.slot) out.push(m)
-    }
-    return out
-  }
-  const m = state.members[target.slot]
-  return m ? [m] : []
 }
 
 // ---------------------------------------------------------------------------

@@ -59,4 +59,19 @@ export const TopazData: CharacterData = {
       },
     ],
   },
+  // Technique deploys her Skill Zone on battle entry, which pre-applies Proof of Debt to a
+  // marked enemy. Modeled as a wave-start Proof of Debt mark only (v1 scope). The technique's
+  // 60% Super Break conversion is out of scope — surface as follow-up if golden BREAK drift
+  // doesn't close. Dedup with the SKILL grant above is a no-op (sticky, same id/source/target).
+  grantsBuffsOnBattleStart: [
+    {
+      target: 'enemy',
+      buff: {
+        id: 'Topaz.proofOfDebt',
+        remaining: 1,
+        mode: 'sticky',
+        conditionalKey: 'enemyProofOfDebtDebuff',
+      },
+    },
+  ],
 }
