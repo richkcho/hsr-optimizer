@@ -21,7 +21,7 @@ import { AbilityKind } from 'lib/optimization/rotation/turnAbilityConfig'
 export const RuanMeiData: CharacterData = {
   abilityTargetHint: {
     [AbilityKind.SKILL]: 'self',       // Overtone — self-buff that propagates team-wide
-    [AbilityKind.ULT]: 'allEnemies',   // AoE damage + field on all enemies
+    [AbilityKind.ULT]: 'allAllies',    // Zone — team RES PEN + Thanatoplum Rebloom trigger on enemy hits; no direct damage hits in actionDefinition
   },
   // Silken Serenade — pre-battle technique automatically triggers her Skill (gamedata SkillID
   // 130302) once at wave start with no SP cost. Dispatched via executeAbility so the auto-Skill
