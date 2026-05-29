@@ -16,6 +16,7 @@ export enum AbilityKind {
   MEMO_TALENT = 'MEMO_TALENT',
   ELATION_SKILL = 'ELATION_SKILL',
   UNIQUE = 'UNIQUE',
+  TRUE_DAMAGE = 'TRUE_DAMAGE',
 
   BASIC_HEAL = 'BASIC_HEAL',
   SKILL_HEAL = 'SKILL_HEAL',
@@ -60,6 +61,16 @@ export const AbilityMeta = {
   [AbilityKind.MEMO_TALENT]: { label: 'MemoTalent', sortKey: 'MEMO_TALENT', category: 'damage' },
   [AbilityKind.ELATION_SKILL]: { label: 'ElationSkill', sortKey: 'ELATION_SKILL', category: 'damage' },
   [AbilityKind.UNIQUE]: { label: 'Unique', sortKey: 'UNIQUE', category: 'damage' },
+  // TrueDamage is the DEF/RES-ignoring damage type, tagged AttackType
+  // "TrueDamage" in the captured battle-log damage stream. It frequently rides
+  // on another character's hit, so we keep it in its own bucket attributed to
+  // the firing row rather than folding it into the source ability — this avoids
+  // double-counting and keeps per-bucket cross-checks against reference captures
+  // aligned. The capture -> BattleRecord converter routes TrueDamage hits here;
+  // the sim itself does not emit true damage yet, so this bucket is currently
+  // populated only from captures. sortKey undefined: an attribution bucket, not
+  // a rotation/optimizer SortOption target.
+  [AbilityKind.TRUE_DAMAGE]: { label: 'TrueDamage', sortKey: undefined, category: 'damage' },
 
   [AbilityKind.BASIC_HEAL]: { label: 'BasicHeal', sortKey: 'BASIC_HEAL', category: 'heal' },
   [AbilityKind.SKILL_HEAL]: { label: 'SkillHeal', sortKey: 'SKILL_HEAL', category: 'heal' },
@@ -162,6 +173,7 @@ export const {
   DEFAULT_MEMO_TALENT,
   DEFAULT_ELATION_SKILL,
   DEFAULT_UNIQUE,
+  DEFAULT_TRUE_DAMAGE,
   DEFAULT_BASIC_HEAL,
   DEFAULT_SKILL_HEAL,
   DEFAULT_ULT_HEAL,
@@ -183,6 +195,7 @@ export const {
   START_MEMO_TALENT,
   START_ELATION_SKILL,
   START_UNIQUE,
+  START_TRUE_DAMAGE,
   START_BASIC_HEAL,
   START_SKILL_HEAL,
   START_ULT_HEAL,
@@ -204,6 +217,7 @@ export const {
   END_MEMO_TALENT,
   END_ELATION_SKILL,
   END_UNIQUE,
+  END_TRUE_DAMAGE,
   END_BASIC_HEAL,
   END_SKILL_HEAL,
   END_ULT_HEAL,
@@ -225,6 +239,7 @@ export const {
   WHOLE_MEMO_TALENT,
   WHOLE_ELATION_SKILL,
   WHOLE_UNIQUE,
+  WHOLE_TRUE_DAMAGE,
   WHOLE_BASIC_HEAL,
   WHOLE_SKILL_HEAL,
   WHOLE_ULT_HEAL,
